@@ -3,11 +3,24 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@/components/ui/input-group";
+import { PageHeader } from "@/components/layout/page-header";
 import { useApp } from "@/lib/app-context";
 import { generateConsultantResponse } from "@/lib/consultant-fallback";
-import { Send, Bot, User, Sparkles } from "lucide-react";
+import {
+  SendIcon,
+  BotIcon,
+  UserIcon,
+  SparklesIcon,
+  Loader2Icon,
+} from "lucide-react";
 
 const SUGGESTED_PROMPTS = [
   "What should I buy for a 2-week swing trade?",
@@ -57,76 +70,73 @@ export default function ConsultantPage() {
   }
 
   return (
-    <div className="p-4 md:p-8 flex flex-col min-h-[calc(100dvh-3.5rem)] md:min-h-screen md:h-[calc(100vh)]">
-      <div className="mb-4 md:mb-6">
-        <h1 className="text-xl md:text-2xl font-bold tracking-tight flex items-center gap-2">
-          <Sparkles className="h-5 w-5 md:h-6 md:w-6 text-emerald-400" />
-          AI Trading Consultant
-        </h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Personalized buy/sell advice based on your portfolio and risk profile
-        </p>
-      </div>
+    <div className="flex min-h-[calc(100dvh-3.5rem)] flex-col gap-4 p-4 md:gap-6 md:p-8">
+      <PageHeader
+        icon={SparklesIcon}
+        title="AI Trading Consultant"
+        description="Ask for personalized buy/sell advice based on your portfolio and risk profile"
+      />
 
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-6 min-h-0">
-        <Card className="lg:col-span-3 border-border/60 flex flex-col min-h-0">
-          <CardContent className="flex-1 flex flex-col p-0 min-h-0">
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-4 lg:gap-6">
+        <Card className="flex min-h-[480px] flex-col lg:col-span-3 lg:min-h-0">
+          <CardContent className="flex flex-1 flex-col p-0">
             <ScrollArea className="flex-1 p-4 md:p-6">
               {messages.length === 0 ? (
-                <div className="space-y-4 md:space-y-6">
-                  <div className="text-center py-6 md:py-8">
-                    <Bot className="h-10 w-10 md:h-12 md:w-12 text-emerald-400 mx-auto mb-4" />
-                    <p className="text-muted-foreground text-sm max-w-md mx-auto px-2">
+                <div className="flex flex-col gap-4 md:gap-6">
+                  <div className="py-6 text-center md:py-8">
+                    <BotIcon className="mx-auto mb-4 text-primary" />
+                    <p className="mx-auto max-w-md px-2 text-sm text-muted-foreground">
                       I analyze technical indicators, your portfolio, and risk tolerance to give
                       actionable short and mid-term trading advice.
                     </p>
                   </div>
                   <div className="grid grid-cols-1 gap-2">
                     {SUGGESTED_PROMPTS.map((prompt) => (
-                      <button
+                      <Button
                         key={prompt}
+                        variant="outline"
+                        className="h-auto justify-start whitespace-normal py-3 text-left text-sm font-normal"
                         onClick={() => send(prompt)}
-                        className="text-left text-sm p-3 rounded-lg border border-border/60 hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground"
                       >
                         {prompt}
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="flex flex-col gap-4">
                   {messages.map((message) => (
                     <div
                       key={message.id}
                       className={`flex gap-3 ${message.role === "user" ? "justify-end" : ""}`}
                     >
                       {message.role === "assistant" && (
-                        <div className="h-8 w-8 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
-                          <Bot className="h-4 w-4 text-emerald-400" />
+                        <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/15">
+                          <BotIcon className="text-primary" />
                         </div>
                       )}
                       <div
-                        className={`rounded-lg px-4 py-2.5 max-w-[90%] md:max-w-[80%] text-sm ${
+                        className={`max-w-[90%] rounded-lg px-4 py-2.5 text-sm md:max-w-[80%] ${
                           message.role === "user"
-                            ? "bg-emerald-600 text-white"
+                            ? "bg-primary text-primary-foreground"
                             : "bg-muted"
                         }`}
                       >
                         <span className="whitespace-pre-wrap">{message.content}</span>
                       </div>
                       {message.role === "user" && (
-                        <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
-                          <User className="h-4 w-4" />
+                        <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted">
+                          <UserIcon />
                         </div>
                       )}
                     </div>
                   ))}
                   {isLoading && (
                     <div className="flex gap-3">
-                      <div className="h-8 w-8 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                        <Bot className="h-4 w-4 text-emerald-400 animate-pulse" />
+                      <div className="flex size-8 items-center justify-center rounded-full bg-primary/15">
+                        <Loader2Icon className="animate-spin text-primary" />
                       </div>
-                      <div className="bg-muted rounded-lg px-4 py-2.5 text-sm text-muted-foreground">
+                      <div className="rounded-lg bg-muted px-4 py-2.5 text-sm text-muted-foreground">
                         Analyzing market data...
                       </div>
                     </div>
@@ -139,50 +149,60 @@ export default function ConsultantPage() {
                 e.preventDefault();
                 send(input);
               }}
-              className="border-t border-border p-3 md:p-4 flex gap-2"
+              className="border-t p-3 md:p-4"
             >
-              <Input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask about a stock, sector, or strategy..."
-                disabled={isLoading}
-              />
-              <Button
-                type="submit"
-                disabled={isLoading || !input.trim()}
-                className="bg-emerald-600 hover:bg-emerald-700 shrink-0"
-              >
-                <Send className="h-4 w-4" />
-              </Button>
+              <InputGroup>
+                <InputGroupInput
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Ask about a stock, sector, or strategy..."
+                  disabled={isLoading}
+                />
+                <InputGroupAddon align="inline-end">
+                  <InputGroupButton
+                    type="submit"
+                    disabled={isLoading || !input.trim()}
+                    variant="default"
+                  >
+                    <SendIcon />
+                    <span className="sr-only">Send</span>
+                  </InputGroupButton>
+                </InputGroupAddon>
+              </InputGroup>
             </form>
           </CardContent>
         </Card>
 
-        <div className="hidden lg:block space-y-4">
-          <Card className="border-border/60">
+        <div className="hidden flex-col gap-4 lg:flex">
+          <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm">Your Profile</CardTitle>
             </CardHeader>
-            <CardContent className="text-xs space-y-2 text-muted-foreground">
-              <p>
-                Risk: <span className="text-foreground capitalize">{riskProfile.tolerance}</span>
-              </p>
-              <p>
-                Horizon:{" "}
-                <span className="text-foreground">
+            <CardContent className="flex flex-col gap-2 text-xs text-muted-foreground">
+              <div className="flex items-center justify-between">
+                <span>Risk</span>
+                <Badge variant="outline" className="capitalize">
+                  {riskProfile.tolerance}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Horizon</span>
+                <Badge variant="outline">
                   {riskProfile.preferredHorizon === "short" ? "Short-term" : "Mid-term"}
-                </span>
-              </p>
-              <p>
-                Max position:{" "}
-                <span className="text-foreground">{riskProfile.maxPositionSize}%</span>
-              </p>
-              <p>
-                Positions: <span className="text-foreground">{portfolio.length}</span>
-              </p>
-              <p>
-                Watchlist: <span className="text-foreground">{watchlist.length}</span>
-              </p>
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Max position</span>
+                <Badge variant="outline">{riskProfile.maxPositionSize}%</Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Positions</span>
+                <Badge variant="secondary">{portfolio.length}</Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Watchlist</span>
+                <Badge variant="secondary">{watchlist.length}</Badge>
+              </div>
             </CardContent>
           </Card>
         </div>

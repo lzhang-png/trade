@@ -2,11 +2,11 @@
 
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -19,11 +19,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
 import { SignalBadge, ScoreBar, PriceChange } from "@/components/trading/signal-badge";
+import { PageHeader } from "@/components/layout/page-header";
 import { rankStocks } from "@/lib/recommendation-engine";
 import { useApp } from "@/lib/app-context";
-import type { Signal, Stock, TimeHorizon } from "@/lib/types";
-import { Search } from "lucide-react";
+import type { Stock, TimeHorizon } from "@/lib/types";
+import { SearchIcon, ScanSearchIcon } from "lucide-react";
 
 const SIGNAL_FILTERS: Array<{ value: string; label: string }> = [
   { value: "all", label: "All Signals" },
@@ -49,8 +55,12 @@ export function ScannerView({ stocks }: { stocks: Stock[] }) {
   const filtered = useMemo(() => {
     return recommendations.filter((rec) => {
       const stock = stocks.find((s) => s.symbol === rec.symbol);
-      if (query && !rec.symbol.toLowerCase().includes(query.toLowerCase()) &&
-          !rec.name.toLowerCase().includes(query.toLowerCase())) return false;
+      if (
+        query &&
+        !rec.symbol.toLowerCase().includes(query.toLowerCase()) &&
+        !rec.name.toLowerCase().includes(query.toLowerCase())
+      )
+        return false;
       if (signalFilter !== "all" && rec.signal !== signalFilter) return false;
       if (sector !== "all" && stock?.sector !== sector) return false;
       return true;
@@ -60,26 +70,26 @@ export function ScannerView({ stocks }: { stocks: Stock[] }) {
   const sectors = [...new Set(stocks.map((s) => s.sector))];
 
   return (
-    <div className="p-8 space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Market Scanner</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Scan {stocks.length} assets for buy and sell opportunities
-        </p>
-      </div>
+    <div className="flex flex-col gap-6 p-4 md:p-8">
+      <PageHeader
+        icon={ScanSearchIcon}
+        title="Market Scanner"
+        description={`Scan ${stocks.length} assets for buy and sell opportunities`}
+      />
 
-      <Card className="border-border/60">
+      <Card>
         <CardContent className="pt-6">
-          <div className="flex flex-wrap gap-4 items-center">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
+          <div className="flex flex-wrap items-center gap-4">
+            <InputGroup className="min-w-[200px] flex-1">
+              <InputGroupAddon>
+                <SearchIcon />
+              </InputGroupAddon>
+              <InputGroupInput
                 placeholder="Search symbol or name..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="pl-9"
               />
-            </div>
+            </InputGroup>
             <Tabs value={horizon} onValueChange={(v) => setHorizon(v as TimeHorizon)}>
               <TabsList>
                 <TabsTrigger value="short">Short-term</TabsTrigger>
@@ -91,9 +101,13 @@ export function ScannerView({ stocks }: { stocks: Stock[] }) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {SIGNAL_FILTERS.map((f) => (
-                  <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
-                ))}
+                <SelectGroup>
+                  {SIGNAL_FILTERS.map((f) => (
+                    <SelectItem key={f.value} value={f.value}>
+                      {f.label}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
               </SelectContent>
             </Select>
             <Select value={sector} onValueChange={setSector}>
@@ -101,17 +115,21 @@ export function ScannerView({ stocks }: { stocks: Stock[] }) {
                 <SelectValue placeholder="Sector" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Sectors</SelectItem>
-                {sectors.map((s) => (
-                  <SelectItem key={s} value={s}>{s}</SelectItem>
-                ))}
+                <SelectGroup>
+                  <SelectItem value="all">All Sectors</SelectItem>
+                  {sectors.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
               </SelectContent>
             </Select>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="border-border/60">
+      <Card>
         <CardHeader>
           <CardTitle className="text-base">
             {filtered.length} Results — sorted by conviction score
@@ -135,10 +153,8 @@ export function ScannerView({ stocks }: { stocks: Stock[] }) {
               {filtered.map((rec) => (
                 <TableRow key={rec.symbol}>
                   <TableCell>
-                    <div>
-                      <p className="font-semibold">{rec.symbol}</p>
-                      <p className="text-xs text-muted-foreground">{rec.name}</p>
-                    </div>
+                    <p className="font-semibold">{rec.symbol}</p>
+                    <p className="text-xs text-muted-foreground">{rec.name}</p>
                   </TableCell>
                   <TableCell className="tabular-nums">${rec.price.toFixed(2)}</TableCell>
                   <TableCell>
@@ -155,13 +171,11 @@ export function ScannerView({ stocks }: { stocks: Stock[] }) {
                   <TableCell>
                     <ScoreBar score={rec.score} />
                   </TableCell>
-                  <TableCell className="tabular-nums">
-                    {rec.indicators.rsi.toFixed(0)}
-                  </TableCell>
-                  <TableCell className="tabular-nums text-emerald-400">
+                  <TableCell className="tabular-nums">{rec.indicators.rsi.toFixed(0)}</TableCell>
+                  <TableCell className="tabular-nums text-primary">
                     ${rec.targetPrice.toFixed(2)}
                   </TableCell>
-                  <TableCell className="tabular-nums text-red-400">
+                  <TableCell className="tabular-nums text-destructive">
                     ${rec.stopLoss.toFixed(2)}
                   </TableCell>
                 </TableRow>

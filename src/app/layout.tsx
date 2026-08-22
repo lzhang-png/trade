@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { AppProvider } from "@/lib/app-context";
-import { AppSidebar, MobileHeader } from "@/components/layout/app-sidebar";
+import { Providers } from "@/components/providers";
+import { AppShell } from "@/components/layout/app-shell";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -31,19 +30,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} dark h-full antialiased`}
+      suppressHydrationWarning
     >
       <body className="min-h-full bg-background text-foreground">
-        <TooltipProvider>
-          <AppProvider>
-            <div className="flex min-h-screen flex-col md:flex-row">
-              <AppSidebar />
-              <div className="flex flex-1 flex-col min-w-0">
-                <MobileHeader />
-                <main className="flex-1 overflow-auto">{children}</main>
-              </div>
-            </div>
-          </AppProvider>
-        </TooltipProvider>
+        <Providers>
+          <AppShell>{children}</AppShell>
+        </Providers>
       </body>
     </html>
   );

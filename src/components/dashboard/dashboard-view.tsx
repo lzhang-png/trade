@@ -1,11 +1,21 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { RecommendationCard } from "@/components/trading/recommendation-card";
 import { PriceChange } from "@/components/trading/signal-badge";
+import { PageHeader } from "@/components/layout/page-header";
 import { useApp } from "@/lib/app-context";
 import type { Recommendation, Stock } from "@/lib/types";
-import { TrendingUp, TrendingDown, Activity, DollarSign } from "lucide-react";
+import {
+  TrendingUp,
+  TrendingDown,
+  Activity,
+  DollarSign,
+  LayoutDashboard,
+  ArrowUpRight,
+  ArrowDownRight,
+} from "lucide-react";
 
 interface DashboardViewProps {
   stocks: Stock[];
@@ -33,15 +43,14 @@ export function DashboardView({
   const portfolioPnLPct = portfolioCost > 0 ? (portfolioPnL / portfolioCost) * 100 : 0;
 
   return (
-    <div className="p-4 md:p-8 space-y-6 md:space-y-8">
-      <div>
-        <h1 className="text-xl md:text-2xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Your trading command center — {riskProfile.preferredHorizon === "short" ? "short-term" : "mid-term"} focus
-        </p>
-      </div>
+    <div className="flex flex-col gap-6 p-4 md:gap-8 md:p-8">
+      <PageHeader
+        icon={LayoutDashboard}
+        title="Dashboard"
+        description={`Your trading command center — ${riskProfile.preferredHorizon === "short" ? "short-term" : "mid-term"} focus`}
+      />
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard
           icon={DollarSign}
           label="Portfolio Value"
@@ -58,7 +67,7 @@ export function DashboardView({
         <StatCard
           icon={Activity}
           label="Market Movers"
-          value={`${gainers[0]?.symbol ?? "—"}`}
+          value={gainers[0]?.symbol ?? "—"}
           sub={gainers[0] ? `+${gainers[0].changePercent.toFixed(2)}% today` : ""}
           positive
         />
@@ -71,27 +80,33 @@ export function DashboardView({
         />
       </div>
 
-      <section>
-        <h2 className="text-lg font-semibold mb-4">Short-Term Picks (1–4 weeks)</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+      <section className="flex flex-col gap-4">
+        <div className="flex items-center gap-2">
+          <TrendingUp className="text-primary" />
+          <h2 className="text-lg font-semibold">Short-Term Picks (1–4 weeks)</h2>
+        </div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           {shortTermPicks.map((rec) => (
             <RecommendationCard key={rec.symbol} rec={rec} />
           ))}
         </div>
       </section>
 
-      <section>
-        <h2 className="text-lg font-semibold mb-4">Mid-Term Picks (1–6 months)</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+      <section className="flex flex-col gap-4">
+        <div className="flex items-center gap-2">
+          <Activity className="text-primary" />
+          <h2 className="text-lg font-semibold">Mid-Term Picks (1–6 months)</h2>
+        </div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           {midTermPicks.map((rec) => (
             <RecommendationCard key={`mid-${rec.symbol}`} rec={rec} />
           ))}
         </div>
       </section>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <MoversCard title="Top Gainers" stocks={gainers} positive />
-        <MoversCard title="Top Losers" stocks={losers} positive={false} />
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <MoversCard title="Top Gainers" stocks={gainers} icon={ArrowUpRight} />
+        <MoversCard title="Top Losers" stocks={losers} icon={ArrowDownRight} />
       </div>
     </div>
   );
@@ -111,27 +126,29 @@ function StatCard({
   positive?: boolean;
 }) {
   return (
-    <Card className="border-border/60">
-      <CardContent className="pt-6">
-        <div className="flex items-center gap-2 text-muted-foreground mb-2">
-          <Icon className="h-4 w-4" />
-          <span className="text-xs font-medium">{label}</span>
-        </div>
-        <p className="text-2xl font-bold tabular-nums">{value}</p>
-        {sub && (
-          <p
-            className={`text-xs mt-1 ${
+    <Card>
+      <CardHeader className="pb-2">
+        <CardDescription className="flex items-center gap-2">
+          <Icon className="text-muted-foreground" />
+          {label}
+        </CardDescription>
+        <CardTitle className="text-2xl tabular-nums">{value}</CardTitle>
+      </CardHeader>
+      {sub && (
+        <CardContent className="pt-0">
+          <Badge
+            variant={
               positive === undefined
-                ? "text-muted-foreground"
+                ? "outline"
                 : positive
-                  ? "text-emerald-400"
-                  : "text-red-400"
-            }`}
+                  ? "default"
+                  : "destructive"
+            }
           >
             {sub}
-          </p>
-        )}
-      </CardContent>
+          </Badge>
+        </CardContent>
+      )}
     </Card>
   );
 }
@@ -139,25 +156,28 @@ function StatCard({
 function MoversCard({
   title,
   stocks,
-  positive,
+  icon: Icon,
 }: {
   title: string;
   stocks: Stock[];
-  positive: boolean;
+  icon: React.ComponentType<{ className?: string }>;
 }) {
   return (
-    <Card className="border-border/60">
+    <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-base">{title}</CardTitle>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Icon className="text-primary" />
+          {title}
+        </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="flex flex-col gap-3">
         {stocks.map((stock) => (
           <div key={stock.symbol} className="flex items-center justify-between">
             <div>
               <p className="text-sm font-semibold">{stock.symbol}</p>
               <p className="text-xs text-muted-foreground">{stock.name}</p>
             </div>
-            <div className="text-right">
+            <div className="flex flex-col items-end gap-1">
               <p className="text-sm font-medium tabular-nums">${stock.price.toFixed(2)}</p>
               <PriceChange change={stock.change} changePercent={stock.changePercent} />
             </div>
