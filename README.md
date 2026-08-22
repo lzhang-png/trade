@@ -53,7 +53,9 @@ Scores map to signals: **Strong Buy** (75+) → **Strong Sell** (<25)
 
 **GitHub Pages:** [https://lzhang-png.github.io/trade/](https://lzhang-png.github.io/trade/)
 
-Open on your phone — the app is mobile-responsive with a slide-out navigation menu.
+> **First-time setup:** Enable GitHub Pages in [repo Settings → Pages](https://github.com/lzhang-png/trade/settings/pages) → set Source to **GitHub Actions**, then re-run the [deploy workflow](https://github.com/lzhang-png/trade/actions/workflows/deploy.yml). See [DEPLOY.md](./DEPLOY.md) for details.
+
+Open on your phone — tap the **☰ menu** in the top-right for navigation.
 
 Deploys automatically to GitHub Pages on every push to `main`.
 
