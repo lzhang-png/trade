@@ -49,14 +49,14 @@ TradeWise scores every asset 0–100 using:
 
 Scores map to signals: **Strong Buy** (75+) → **Strong Sell** (<25)
 
-## Getting Started
+## Live Demo
 
-```bash
-npm install
-npm run dev
-```
+**GitHub Pages:** [https://lzhang-png.github.io/trade/](https://lzhang-png.github.io/trade/)
 
-Open [http://localhost:3000](http://localhost:3000).
+Open on your phone — the app is mobile-responsive with a slide-out navigation menu.
+
+Deploys automatically to GitHub Pages on every push to `main`.
+
 
 ### Optional: Enable full AI consultant
 

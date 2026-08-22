@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppProvider } from "@/lib/app-context";
-import { AppSidebar } from "@/components/layout/app-sidebar";
+import { AppSidebar, MobileHeader } from "@/components/layout/app-sidebar";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -21,6 +21,11 @@ export const metadata: Metadata = {
     "Smart buy and sell recommendations for short and mid-term investing. Technical analysis, portfolio tracking, and AI-powered guidance.",
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
@@ -30,9 +35,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full bg-background text-foreground">
         <TooltipProvider>
           <AppProvider>
-            <div className="flex min-h-screen">
+            <div className="flex min-h-screen flex-col md:flex-row">
               <AppSidebar />
-              <main className="flex-1 overflow-auto">{children}</main>
+              <div className="flex flex-1 flex-col min-w-0">
+                <MobileHeader />
+                <main className="flex-1 overflow-auto">{children}</main>
+              </div>
             </div>
           </AppProvider>
         </TooltipProvider>
