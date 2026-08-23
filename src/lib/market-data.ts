@@ -1,5 +1,11 @@
 import type { Sector, Stock } from "./types";
-import { fetchYahooChart, fetchYahooCharts } from "./yahoo-finance";
+import {
+  fetchFinnhubCandles,
+  fetchFinnhubMetrics,
+  fetchFinnhubProfile,
+  fetchFinnhubQuote,
+} from "./finnhub-client";
+import { fetchYahooChart } from "./yahoo-finance";
 
 /** Static universe — sector labels only; all prices come from live APIs. */
 export const STOCK_UNIVERSE: Array<{ symbol: string; name: string; sector: Sector }> = [
@@ -23,6 +29,12 @@ export const STOCK_UNIVERSE: Array<{ symbol: string; name: string; sector: Secto
   { symbol: "LLY", name: "Eli Lilly & Co.", sector: "Healthcare" },
 ];
 
+export type MarketDataError =
+  | "missing_key"
+  | "invalid_key"
+  | "fetch_failed"
+  | "partial";
+
 function emptyStock(def: (typeof STOCK_UNIVERSE)[0]): Stock {
   return {
     symbol: def.symbol,
@@ -40,7 +52,6 @@ function emptyStock(def: (typeof STOCK_UNIVERSE)[0]): Stock {
 
 let cachedStocks: Stock[] | null = null;
 
-/** Placeholder list before live data loads (no simulated prices). */
 export function getAllStocks(): Stock[] {
   if (!cachedStocks) {
     cachedStocks = STOCK_UNIVERSE.map(emptyStock);
@@ -75,24 +86,6 @@ export function isFinnhubConfigured(): boolean {
   return Boolean(getFinnhubApiKey());
 }
 
-export interface FinnhubQuote {
-  c: number;
-  d: number;
-  dp: number;
-}
-
-export interface FinnhubProfile {
-  name?: string;
-  marketCapitalization?: number;
-}
-
-export interface FinnhubMetrics {
-  metric?: {
-    peBasicExclExtraTTM?: number;
-    dividendYieldIndicatedAnnual?: number;
-  };
-}
-
 function formatMarketCap(value: number | undefined): string {
   if (!value) return "—";
   if (value >= 1e12) return `${(value / 1e12).toFixed(1)}T`;
@@ -101,125 +94,152 @@ function formatMarketCap(value: number | undefined): string {
   return value.toLocaleString();
 }
 
-async function fetchFinnhubExtras(
+async function fetchFundamentals(symbol: string, apiKey: string) {
+  const [profile, metrics] = await Promise.all([
+    fetchFinnhubProfile(symbol, apiKey),
+    fetchFinnhubMetrics(symbol, apiKey),
+  ]);
+
+  let marketCap = "—";
+  let peRatio: number | null = null;
+  let dividendYield: number | null = null;
+
+  if (profile?.marketCapitalization) {
+    marketCap = formatMarketCap(profile.marketCapitalization * 1_000_000);
+  }
+  if (metrics?.metric?.peBasicExclExtraTTM) {
+    peRatio = +metrics.metric.peBasicExclExtraTTM.toFixed(1);
+  }
+  if (metrics?.metric?.dividendYieldIndicatedAnnual != null) {
+    dividendYield = +metrics.metric.dividendYieldIndicatedAnnual.toFixed(2);
+  }
+
+  return { marketCap, peRatio, dividendYield, name: profile?.name };
+}
+
+interface ChartSlice {
+  price: number;
+  change: number;
+  changePercent: number;
+  history: Stock["history"];
+  name?: string;
+}
+
+async function fetchChartData(
   symbol: string,
-  apiKey: string
-): Promise<{ marketCap: string; peRatio: number | null; dividendYield: number | null }> {
-  try {
-    const [profileRes, metricRes] = await Promise.all([
-      fetch(`https://finnhub.io/api/v1/stock/profile2?symbol=${symbol}&token=${apiKey}`),
-      fetch(`https://finnhub.io/api/v1/stock/metric?symbol=${symbol}&metric=all&token=${apiKey}`),
-    ]);
-
-    let marketCap = "—";
-    let peRatio: number | null = null;
-    let dividendYield: number | null = null;
-
-    if (profileRes.ok) {
-      const profile = (await profileRes.json()) as FinnhubProfile;
-      if (profile.marketCapitalization) {
-        marketCap = formatMarketCap(profile.marketCapitalization * 1_000_000);
-      }
-    }
-
-    if (metricRes.ok) {
-      const metrics = (await metricRes.json()) as FinnhubMetrics;
-      if (metrics.metric?.peBasicExclExtraTTM) {
-        peRatio = +metrics.metric.peBasicExclExtraTTM.toFixed(1);
-      }
-      if (metrics.metric?.dividendYieldIndicatedAnnual != null) {
-        dividendYield = +metrics.metric.dividendYieldIndicatedAnnual.toFixed(2);
-      }
-    }
-
-    return { marketCap, peRatio, dividendYield };
-  } catch {
-    return { marketCap: "—", peRatio: null, dividendYield: null };
+  apiKey?: string
+): Promise<ChartSlice | null> {
+  if (apiKey) {
+    const finnhub = await fetchFinnhubCandles(symbol, apiKey);
+    if (finnhub) return finnhub;
   }
-}
 
-async function fetchFinnhubQuote(symbol: string, apiKey: string): Promise<FinnhubQuote | null> {
-  try {
-    const res = await fetch(
-      `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(symbol)}&token=${apiKey}`
-    );
-    if (!res.ok) return null;
-    const data = (await res.json()) as FinnhubQuote & { error?: string };
-    if (data.error || !data.c) return null;
-    return data;
-  } catch {
-    return null;
-  }
-}
-
-function mergeYahooIntoStock(
-  def: (typeof STOCK_UNIVERSE)[0],
-  yahoo: Awaited<ReturnType<typeof fetchYahooChart>>,
-  extras?: { marketCap: string; peRatio: number | null; dividendYield: number | null }
-): Stock {
-  if (!yahoo) return emptyStock(def);
+  const yahoo = await fetchYahooChart(symbol);
+  if (!yahoo) return null;
 
   return {
-    symbol: def.symbol,
-    name: yahoo.name || def.name,
-    sector: def.sector,
     price: yahoo.price,
     change: yahoo.change,
     changePercent: yahoo.changePercent,
-    marketCap: extras?.marketCap ?? "—",
-    peRatio: extras?.peRatio ?? null,
-    dividendYield: extras?.dividendYield ?? null,
     history: yahoo.history,
+    name: yahoo.name,
   };
 }
 
-/** Fetch real market data for the full universe from Yahoo Finance (+ optional Finnhub extras). */
-export async function fetchLiveStocks(apiKey?: string): Promise<{
+async function fetchSymbolStock(
+  def: (typeof STOCK_UNIVERSE)[0],
+  apiKey?: string
+): Promise<Stock> {
+  const [chart, quote, fundamentals] = await Promise.all([
+    fetchChartData(def.symbol, apiKey),
+    apiKey ? fetchFinnhubQuote(def.symbol, apiKey) : Promise.resolve(null),
+    apiKey ? fetchFundamentals(def.symbol, apiKey) : Promise.resolve(null),
+  ]);
+
+  if (!chart) return emptyStock(def);
+
+  const price = quote?.c ?? chart.price;
+  const change = quote ? +(quote.d ?? 0).toFixed(2) : chart.change;
+  const changePercent = quote ? +(quote.dp ?? 0).toFixed(2) : chart.changePercent;
+
+  return {
+    symbol: def.symbol,
+    name: fundamentals?.name ?? chart.name ?? def.name,
+    sector: def.sector,
+    price,
+    change,
+    changePercent,
+    marketCap: fundamentals?.marketCap ?? "—",
+    peRatio: fundamentals?.peRatio ?? null,
+    dividendYield: fundamentals?.dividendYield ?? null,
+    history: chart.history,
+  };
+}
+
+export function marketDataErrorMessage(
+  code: MarketDataError,
+  failedSymbols: string[]
+): string {
+  switch (code) {
+    case "missing_key":
+      return "Finnhub API key is required. Add FINNHUB_API_KEY to GitHub Secrets and redeploy.";
+    case "invalid_key":
+      return "Finnhub API key is invalid. Check the FINNHUB_API_KEY secret in GitHub and redeploy.";
+    case "partial":
+      return `Partial load — failed: ${failedSymbols.join(", ")}`;
+    default:
+      return "Could not load market data. Check your connection and tap refresh.";
+  }
+}
+
+/** Fetch real market data for the full universe (Finnhub + Yahoo proxy fallback). */
+export async function fetchLiveStocks(
+  apiKey?: string,
+  onProgress?: (stock: Stock) => void
+): Promise<{
   stocks: Stock[];
   live: boolean;
   updatedAt: string | null;
   failedSymbols: string[];
+  errorCode: MarketDataError | null;
 }> {
   const key = apiKey ?? getFinnhubApiKey();
-  const symbols = STOCK_UNIVERSE.map((s) => s.symbol);
-  const yahooData = await fetchYahooCharts(symbols);
+
+  if (!key) {
+    return {
+      stocks: STOCK_UNIVERSE.map(emptyStock),
+      live: false,
+      updatedAt: null,
+      failedSymbols: STOCK_UNIVERSE.map((s) => s.symbol),
+      errorCode: "missing_key",
+    };
+  }
+
+  const probe = await fetchFinnhubQuote("AAPL", key);
+  if (!probe) {
+    return {
+      stocks: STOCK_UNIVERSE.map(emptyStock),
+      live: false,
+      updatedAt: null,
+      failedSymbols: STOCK_UNIVERSE.map((s) => s.symbol),
+      errorCode: "invalid_key",
+    };
+  }
 
   const results: Stock[] = [];
   const failedSymbols: string[] = [];
 
   for (const def of STOCK_UNIVERSE) {
-    const chart = yahooData.get(def.symbol);
-    if (!chart) {
+    const stock = await fetchSymbolStock(def, key);
+    if (stock.price > 0 && stock.history.length > 0) {
+      results.push(stock);
+      onProgress?.(stock);
+    } else {
       failedSymbols.push(def.symbol);
       results.push(emptyStock(def));
-      continue;
     }
-
-    let stock = mergeYahooIntoStock(def, chart);
-
-    if (key) {
-      const [quote, extras] = await Promise.all([
-        fetchFinnhubQuote(def.symbol, key),
-        fetchFinnhubExtras(def.symbol, key),
-      ]);
-      if (quote) {
-        stock = {
-          ...stock,
-          price: quote.c,
-          change: +(quote.d ?? 0).toFixed(2),
-          changePercent: +(quote.dp ?? 0).toFixed(2),
-        };
-      }
-      stock = {
-        ...stock,
-        marketCap: extras.marketCap,
-        peRatio: extras.peRatio,
-        dividendYield: extras.dividendYield,
-      };
-      await new Promise((r) => setTimeout(r, 50));
-    }
-
-    results.push(stock);
+    // Stay under Finnhub free-tier rate limits (~60/min).
+    await new Promise((r) => setTimeout(r, 1100));
   }
 
   const liveCount = results.filter((s) => s.history.length > 0 && s.price > 0).length;
@@ -233,22 +253,19 @@ export async function fetchLiveStocks(apiKey?: string): Promise<{
     live: liveCount > 0,
     updatedAt: liveCount > 0 ? new Date().toISOString() : null,
     failedSymbols,
+    errorCode:
+      liveCount === 0 ? "fetch_failed" : failedSymbols.length > 0 ? "partial" : null,
   };
 }
 
 /** Fetch a single symbol (e.g. custom portfolio ticker). */
 export async function fetchRealStock(symbol: string): Promise<Stock | null> {
-  const def = STOCK_UNIVERSE.find((s) => s.symbol === symbol);
-  const chart = await fetchYahooChart(symbol);
-  if (!chart) return null;
-
-  const base = def ?? {
-    symbol: chart.symbol,
-    name: chart.name,
-    sector: "Technology" as Sector,
-  };
-
+  const upper = symbol.toUpperCase();
+  const def = STOCK_UNIVERSE.find((s) => s.symbol === upper);
   const key = getFinnhubApiKey();
-  const extras = key ? await fetchFinnhubExtras(symbol, key) : undefined;
-  return mergeYahooIntoStock(base, chart, extras);
+
+  const base = def ?? { symbol: upper, name: upper, sector: "Technology" as Sector };
+  const stock = await fetchSymbolStock(base, key);
+  if (stock.price <= 0 || stock.history.length === 0) return null;
+  return stock;
 }

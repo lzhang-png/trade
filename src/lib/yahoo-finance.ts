@@ -1,3 +1,4 @@
+import { fetchJson } from "./cors-fetch";
 import type { PriceBar } from "./types";
 
 interface YahooChartResult {
@@ -70,32 +71,24 @@ function parseChartResult(result: YahooChartResult): YahooChartData | null {
   };
 }
 
-const YAHOO_HEADERS: HeadersInit = {
-  "User-Agent":
-    "Mozilla/5.0 (compatible; TradeWise/1.0; +https://lzhang-png.github.io/trade/)",
-};
-
-/** Fetch ~1 year of daily OHLCV + latest quote from Yahoo Finance. */
-export async function fetchYahooChart(symbol: string): Promise<YahooChartData | null> {
-  try {
-    const url = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1y`;
-    const res = await fetch(url, { cache: "no-store", headers: YAHOO_HEADERS });
-    if (!res.ok) return null;
-
-    const json = (await res.json()) as { chart?: { result?: YahooChartResult[] | null } };
-    const result = json.chart?.result?.[0];
-    if (!result) return null;
-
-    return parseChartResult(result);
-  } catch {
-    return null;
-  }
+function yahooChartUrl(symbol: string): string {
+  return `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1y`;
 }
 
-/** Batch fetch with modest concurrency to respect rate limits. */
+/** Fetch ~1 year of daily OHLCV via CORS proxy (Yahoo blocks direct browser requests). */
+export async function fetchYahooChart(symbol: string): Promise<YahooChartData | null> {
+  const json = await fetchJson<{ chart?: { result?: YahooChartResult[] | null } }>(
+    yahooChartUrl(symbol)
+  );
+  const result = json?.chart?.result?.[0];
+  if (!result) return null;
+  return parseChartResult(result);
+}
+
+/** Batch fetch with modest concurrency. */
 export async function fetchYahooCharts(
   symbols: string[],
-  concurrency = 3
+  concurrency = 2
 ): Promise<Map<string, YahooChartData>> {
   const results = new Map<string, YahooChartData>();
   let index = 0;
@@ -106,7 +99,7 @@ export async function fetchYahooCharts(
       const symbol = symbols[i];
       const data = await fetchYahooChart(symbol);
       if (data) results.set(symbol, data);
-      await new Promise((r) => setTimeout(r, 120));
+      await new Promise((r) => setTimeout(r, 300));
     }
   }
 

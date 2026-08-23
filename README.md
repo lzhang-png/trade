@@ -67,18 +67,16 @@ Deploys automatically to GitHub Pages on every push to `main`.
 OPENAI_API_KEY=sk-...
 ```
 
-### Live market data
+### Live market data (Finnhub required)
 
-Prices and 1-year daily history come from **Yahoo Finance** (loaded in your browser). Technical scores are computed from that real OHLCV data.
-
-Optional **Finnhub** key adds live quotes and fundamentals (market cap, P/E, dividend yield):
+GitHub Pages runs entirely in the browser. Yahoo Finance blocks direct browser requests, so **a Finnhub API key is required** for live data on the deployed site.
 
 ```bash
-# .env.local or GitHub Actions secret FINNHUB_API_KEY
-FINNHUB_API_KEY=your_key
+# GitHub repo → Settings → Secrets → FINNHUB_API_KEY
+# Already wired in .github/workflows/deploy.yml
 ```
 
-Without a Finnhub key, fundamentals show as "—" but prices, charts, and signals still use real market data.
+Finnhub provides live quotes, fundamentals (market cap, P/E, dividend), and historical candles. Yahoo Finance is used as a fallback for price history when needed.
 
 ## Tech Stack
 

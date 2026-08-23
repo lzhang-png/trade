@@ -12,6 +12,7 @@ import {
   fetchLiveStocks,
   fetchRealStock,
   getAllStocks,
+  marketDataErrorMessage,
 } from "@/lib/market-data";
 import type { Stock } from "@/lib/types";
 
@@ -54,15 +55,21 @@ export function MarketDataProvider({ children }: { children: React.ReactNode }) 
     setLoading(true);
     setError(null);
     try {
-      const result = await fetchLiveStocks();
-      setStocks((prev) => mergeStocks(prev, result.stocks));
+      const result = await fetchLiveStocks(undefined, (stock) => {
+        setStocks((prev) => mergeStocks(prev, [stock]));
+        setLive(true);
+        setUpdatedAt(new Date().toISOString());
+      });
+
       setLive(result.live);
       setUpdatedAt(result.updatedAt);
 
       if (!result.live) {
-        setError("Could not load market data. Check your connection and try again.");
+        setError(
+          marketDataErrorMessage(result.errorCode ?? "fetch_failed", result.failedSymbols)
+        );
       } else if (result.failedSymbols.length > 0) {
-        setError(`Partial load — failed: ${result.failedSymbols.join(", ")}`);
+        setError(marketDataErrorMessage("partial", result.failedSymbols));
       }
     } catch {
       setError("Failed to load market data");
