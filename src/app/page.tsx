@@ -1,5 +1,5 @@
-import { DashboardView } from "@/components/dashboard/dashboard-view";
+import { RecommendationsTable } from "@/components/recommendations-table";
 
-export default function DashboardPage() {
-  return <DashboardView />;
+export default function HomePage() {
+  return <RecommendationsTable />;
 }

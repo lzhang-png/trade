@@ -62,39 +62,6 @@ export interface Recommendation {
   indicators: TechnicalIndicators;
 }
 
-export interface PortfolioPosition {
-  id: string;
-  symbol: string;
-  name: string;
-  shares: number;
-  avgCost: number;
-  purchaseDate: string;
-  horizon: TimeHorizon;
-}
-
-export interface RiskProfile {
-  tolerance: "conservative" | "moderate" | "aggressive";
-  maxPositionSize: number;
-  preferredHorizon: TimeHorizon;
-  sectors: Sector[];
-  maxDrawdown: number;
-}
-
-export interface WatchlistItem {
-  symbol: string;
-  name: string;
-  addedAt: string;
-  alertPrice?: number;
-}
-
-export const SIGNAL_LABELS: Record<Signal, string> = {
-  strong_buy: "Strong Buy",
-  buy: "Buy",
-  hold: "Hold",
-  sell: "Sell",
-  strong_sell: "Strong Sell",
-};
-
 export const HORIZON_LABELS: Record<TimeHorizon, string> = {
   short: "Short-term (1–4 weeks)",
   mid: "Mid-term (1–6 months)",

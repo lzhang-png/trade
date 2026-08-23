@@ -1,7 +1,6 @@
 import { calculateIndicators } from "./technical-analysis";
 import type {
   Recommendation,
-  RiskProfile,
   Signal,
   Stock,
   TimeHorizon,
@@ -108,8 +107,7 @@ function analyzeMidTerm(indicators: ReturnType<typeof calculateIndicators>, pric
 
 export function generateRecommendation(
   stock: Stock,
-  horizon: TimeHorizon,
-  riskProfile?: RiskProfile
+  horizon: TimeHorizon
 ): Recommendation {
   const indicators = calculateIndicators(stock.history);
   const analysis =
@@ -117,20 +115,7 @@ export function generateRecommendation(
       ? analyzeShortTerm(indicators, stock.price)
       : analyzeMidTerm(indicators, stock.price);
 
-  let adjustedScore = analysis.score;
-
-  if (riskProfile) {
-    if (riskProfile.tolerance === "conservative" && indicators.atr / stock.price > 0.03) {
-      adjustedScore -= 10;
-      analysis.risks.push("High volatility for conservative profile");
-    }
-    if (riskProfile.sectors.length > 0 && !riskProfile.sectors.includes(stock.sector)) {
-      adjustedScore -= 5;
-      analysis.risks.push(`Outside preferred sectors (${riskProfile.sectors.join(", ")})`);
-    }
-  }
-
-  adjustedScore = Math.max(0, Math.min(100, adjustedScore));
+  const adjustedScore = Math.max(0, Math.min(100, analysis.score));
   const confidence = Math.min(
     95,
     50 + Math.abs(adjustedScore - 50) * 0.8 + analysis.reasons.length * 3
@@ -152,35 +137,9 @@ export function generateRecommendation(
   };
 }
 
-export function generatePortfolioAdvice(
-  position: { symbol: string; shares: number; avgCost: number },
-  stock: Stock,
-  horizon: TimeHorizon
-): Recommendation & { gainLoss: number; gainLossPercent: number } {
-  const rec = generateRecommendation(stock, horizon);
-  const currentValue = stock.price * position.shares;
-  const costBasis = position.avgCost * position.shares;
-  const gainLoss = currentValue - costBasis;
-  const gainLossPercent = ((stock.price - position.avgCost) / position.avgCost) * 100;
-
-  if (gainLossPercent > 15 && rec.signal !== "strong_buy") {
-    rec.signal = rec.score < 50 ? "sell" : "hold";
-    rec.reasons.unshift(`Up ${gainLossPercent.toFixed(1)}% — consider taking profits`);
-  } else if (gainLossPercent < -10) {
-    rec.risks.unshift(`Down ${Math.abs(gainLossPercent).toFixed(1)}% — review stop-loss`);
-    if (rec.score < 40) rec.signal = "sell";
-  }
-
-  return { ...rec, gainLoss, gainLossPercent };
-}
-
-export function rankStocks(
-  stocks: Stock[],
-  horizon: TimeHorizon,
-  riskProfile?: RiskProfile
-): Recommendation[] {
+export function rankStocks(stocks: Stock[], horizon: TimeHorizon): Recommendation[] {
   return stocks
     .filter((s) => s.price > 0 && s.history.length >= 20)
-    .map((s) => generateRecommendation(s, horizon, riskProfile))
+    .map((s) => generateRecommendation(s, horizon))
     .sort((a, b) => b.score - a.score);
 }

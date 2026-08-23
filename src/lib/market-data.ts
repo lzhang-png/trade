@@ -257,15 +257,3 @@ export async function fetchLiveStocks(
       liveCount === 0 ? "fetch_failed" : failedSymbols.length > 0 ? "partial" : null,
   };
 }
-
-/** Fetch a single symbol (e.g. custom portfolio ticker). */
-export async function fetchRealStock(symbol: string): Promise<Stock | null> {
-  const upper = symbol.toUpperCase();
-  const def = STOCK_UNIVERSE.find((s) => s.symbol === upper);
-  const key = getFinnhubApiKey();
-
-  const base = def ?? { symbol: upper, name: upper, sector: "Technology" as Sector };
-  const stock = await fetchSymbolStock(base, key);
-  if (stock.price <= 0 || stock.history.length === 0) return null;
-  return stock;
-}

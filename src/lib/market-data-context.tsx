@@ -5,12 +5,10 @@ import {
   useCallback,
   useContext,
   useEffect,
-  useRef,
   useState,
 } from "react";
 import {
   fetchLiveStocks,
-  fetchRealStock,
   getAllStocks,
   marketDataErrorMessage,
 } from "@/lib/market-data";
@@ -23,13 +21,11 @@ interface MarketDataState {
   error: string | null;
   updatedAt: string | null;
   refresh: () => Promise<void>;
-  ensureSymbols: (symbols: string[]) => Promise<void>;
-  getStock: (symbol: string) => Stock | undefined;
 }
 
 const MarketDataContext = createContext<MarketDataState | null>(null);
 
-const REFRESH_MS = 5 * 60_000; // refresh every 5 minutes
+const REFRESH_MS = 5 * 60_000;
 
 function mergeStocks(existing: Stock[], incoming: Stock[]): Stock[] {
   const map = new Map(existing.map((s) => [s.symbol, s]));
@@ -45,11 +41,6 @@ export function MarketDataProvider({ children }: { children: React.ReactNode }) 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
-  const stocksRef = useRef(stocks);
-
-  useEffect(() => {
-    stocksRef.current = stocks;
-  }, [stocks]);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -79,52 +70,15 @@ export function MarketDataProvider({ children }: { children: React.ReactNode }) 
     }
   }, []);
 
-  const ensureSymbols = useCallback(async (symbols: string[]) => {
-    const normalized = [...new Set(symbols.map((s) => s.toUpperCase()).filter(Boolean))];
-    if (normalized.length === 0) return;
-
-    const missing = normalized.filter(
-      (symbol) =>
-        !stocksRef.current.some(
-          (s) => s.symbol === symbol && s.price > 0 && s.history.length > 0
-        )
-    );
-    if (missing.length === 0) return;
-
-    const fetched = (
-      await Promise.all(missing.map((symbol) => fetchRealStock(symbol)))
-    ).filter((s): s is Stock => s != null);
-
-    if (fetched.length > 0) {
-      setStocks((prev) => mergeStocks(prev, fetched));
-      setLive(true);
-      setUpdatedAt(new Date().toISOString());
-    }
-  }, []);
-
   useEffect(() => {
     void refresh();
     const id = setInterval(() => void refresh(), REFRESH_MS);
     return () => clearInterval(id);
   }, [refresh]);
 
-  const getStockBySymbol = useCallback(
-    (symbol: string) => stocks.find((s) => s.symbol === symbol),
-    [stocks]
-  );
-
   return (
     <MarketDataContext.Provider
-      value={{
-        stocks,
-        live,
-        loading,
-        error,
-        updatedAt,
-        refresh,
-        ensureSymbols,
-        getStock: getStockBySymbol,
-      }}
+      value={{ stocks, live, loading, error, updatedAt, refresh }}
     >
       {children}
     </MarketDataContext.Provider>
