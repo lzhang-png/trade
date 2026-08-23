@@ -14,21 +14,21 @@ export function LiveDataBadge() {
 
   return (
     <div className="flex items-center gap-3">
-      {live ? (
+      {loading && !live ? (
+        <Badge variant="secondary" className="gap-2 px-3 py-1 text-sm">
+          <RefreshCwIcon className="animate-spin" />
+          Loading market data…
+        </Badge>
+      ) : live ? (
         <Badge variant="default" className="gap-2 px-3 py-1 text-sm">
           <RadioIcon className="animate-pulse" />
-          Live · Finnhub
+          Live data
           {timeLabel && <span className="opacity-70">· {timeLabel}</span>}
         </Badge>
-      ) : error ? (
+      ) : (
         <Badge variant="destructive" className="gap-2 px-3 py-1 text-sm">
           <WifiOffIcon />
-          Offline
-        </Badge>
-      ) : (
-        <Badge variant="secondary" className="gap-2 px-3 py-1 text-sm">
-          <WifiOffIcon />
-          Demo data
+          {error ?? "Offline"}
         </Badge>
       )}
       <Button

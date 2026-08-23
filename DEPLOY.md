@@ -21,10 +21,20 @@ npm run build:pages
 # Output is in ./out — uploaded by GitHub Actions on push to main
 ```
 
+## Data sources
+
+| Data | Source |
+|------|--------|
+| Prices & 1y history | Yahoo Finance (client-side) |
+| Market cap, P/E, dividend | Finnhub (optional, requires API key) |
+| Buy/sell scores | Computed locally from real OHLCV |
+
 ## Troubleshooting
 
 | Issue | Fix |
 |-------|-----|
 | 404 on GitHub Pages | Enable Pages source = GitHub Actions (step above) |
 | Deploy workflow failed | Re-run after enabling Pages |
+| Live data not loading | Check network; Yahoo may rate-limit — tap refresh |
+| Fundamentals show "—" | Add `FINNHUB_API_KEY` secret in repo Settings → Secrets |
 | Styles broken | Ensure `GITHUB_PAGES=true` is set in the workflow (already configured) |

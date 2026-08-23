@@ -50,6 +50,7 @@ import { SignalBadge } from "@/components/trading/signal-badge";
 import { PageHeader } from "@/components/layout/page-header";
 import { LiveDataBadge } from "@/components/trading/live-data-badge";
 import { generatePortfolioAdvice } from "@/lib/recommendation-engine";
+import { fetchRealStock } from "@/lib/market-data";
 import { useApp } from "@/lib/app-context";
 import { useMarketData } from "@/lib/market-data-context";
 import type { TimeHorizon } from "@/lib/types";
@@ -63,12 +64,13 @@ import {
 
 export function PortfolioView() {
   const { portfolio, addPosition, removePosition } = useApp();
-  const { stocks } = useMarketData();
+  const { stocks, ensureSymbols } = useMarketData();
   const [open, setOpen] = useState(false);
   const [symbol, setSymbol] = useState("");
   const [shares, setShares] = useState("");
   const [avgCost, setAvgCost] = useState("");
   const [horizon, setHorizon] = useState<TimeHorizon>("mid");
+  const [adding, setAdding] = useState(false);
 
   const positions = portfolio
     .map((pos) => {
@@ -85,22 +87,38 @@ export function PortfolioView() {
     positions.reduce((sum, p) => sum! + p!.position.avgCost * p!.position.shares, 0) ?? 0;
   const totalPnL = totalValue - totalCost;
 
-  function handleAdd() {
-    const stock = stocks.find((s) => s.symbol.toUpperCase() === symbol.toUpperCase());
-    if (!stock || !shares || !avgCost) return;
-    addPosition({
-      symbol: stock.symbol,
-      name: stock.name,
-      shares: parseFloat(shares),
-      avgCost: parseFloat(avgCost),
-      purchaseDate: new Date().toISOString().split("T")[0],
-      horizon,
-    });
-    toast.success(`${stock.symbol} added to portfolio`);
-    setOpen(false);
-    setSymbol("");
-    setShares("");
-    setAvgCost("");
+  async function handleAdd() {
+    if (!symbol || !shares || !avgCost) return;
+
+    setAdding(true);
+    try {
+      const upper = symbol.toUpperCase();
+      let stock = stocks.find((s) => s.symbol === upper);
+      if (!stock || stock.price <= 0) {
+        stock = (await fetchRealStock(upper)) ?? undefined;
+        if (stock) await ensureSymbols([upper]);
+      }
+      if (!stock || stock.price <= 0) {
+        toast.error(`Could not find live data for ${upper}`);
+        return;
+      }
+
+      addPosition({
+        symbol: stock.symbol,
+        name: stock.name,
+        shares: parseFloat(shares),
+        avgCost: parseFloat(avgCost),
+        purchaseDate: new Date().toISOString().split("T")[0],
+        horizon,
+      });
+      toast.success(`${stock.symbol} added to portfolio`);
+      setOpen(false);
+      setSymbol("");
+      setShares("");
+      setAvgCost("");
+    } finally {
+      setAdding(false);
+    }
   }
 
   return (
@@ -182,9 +200,9 @@ export function PortfolioView() {
                 </Field>
               </FieldGroup>
               <DialogFooter>
-                <Button onClick={handleAdd} className="w-full sm:w-auto">
+                <Button onClick={() => void handleAdd()} disabled={adding} className="w-full sm:w-auto">
                   <PlusIcon data-icon="inline-start" />
-                  Add to Portfolio
+                  {adding ? "Looking up symbol…" : "Add to Portfolio"}
                 </Button>
               </DialogFooter>
             </DialogContent>

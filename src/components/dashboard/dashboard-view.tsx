@@ -23,7 +23,7 @@ import {
 
 export function DashboardView() {
   const { portfolio, riskProfile } = useApp();
-  const { stocks, loading } = useMarketData();
+  const { stocks, loading, live } = useMarketData();
 
   const shortTermPicks = rankStocks(stocks, "short", riskProfile).slice(0, 4);
   const midTermPicks = rankStocks(stocks, "mid", riskProfile).slice(0, 4);
@@ -48,7 +48,7 @@ export function DashboardView() {
         action={<LiveDataBadge />}
       />
 
-      {loading && stocks.every((s) => s.price === stocks[0]?.price) ? (
+      {loading && !live ? (
         <div className="content-grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-28 w-full rounded-xl" />

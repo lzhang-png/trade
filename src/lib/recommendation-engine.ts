@@ -180,6 +180,7 @@ export function rankStocks(
   riskProfile?: RiskProfile
 ): Recommendation[] {
   return stocks
+    .filter((s) => s.price > 0 && s.history.length >= 20)
     .map((s) => generateRecommendation(s, horizon, riskProfile))
     .sort((a, b) => b.score - a.score);
 }
