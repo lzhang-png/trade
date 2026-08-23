@@ -4,6 +4,7 @@ import type { Recommendation, Stock } from "@/lib/types";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import { SignalBadge, ScoreBar, PriceChange } from "@/components/trading/signal-badge";
 import {
   TrendingUpIcon,
@@ -120,7 +121,16 @@ export function StockCard({
 
       <CardContent className="flex flex-1 flex-col gap-5 pt-0">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Metric label="Market cap" value={stock.marketCap} />
+          {!stock.detailsLoaded ? (
+            Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="flex flex-col gap-1">
+                <Skeleton className="h-3 w-12" />
+                <Skeleton className="h-5 w-16" />
+              </div>
+            ))
+          ) : (
+            <>
+              <Metric label="Market cap" value={stock.marketCap} />
           <Metric label="P/E" value={stock.peRatio?.toFixed(1) ?? "—"} />
           <Metric label="Div yield" value={stock.dividendYield != null ? `${stock.dividendYield}%` : "—"} />
           <Metric label="Beta" value={stock.beta?.toFixed(2) ?? "—"} />
@@ -138,6 +148,8 @@ export function StockCard({
           />
           <Metric label="EPS growth (3Y)" value={stock.epsGrowth != null ? `${stock.epsGrowth}%` : "—"} />
           <Metric label="ROE" value={stock.roe != null ? `${stock.roe}%` : "—"} />
+            </>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -215,7 +227,18 @@ export function StockCard({
           </div>
         )}
 
-        {stock.news.length > 0 && (
+        {!stock.detailsLoaded && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Skeleton className="h-4 w-4 rounded-full" />
+            Loading fundamentals and news…
+          </div>
+        )}
+
+        {stock.detailsLoaded && stock.news.length === 0 && stock.sector !== "ETF" && (
+          <p className="text-sm text-muted-foreground">No recent news found.</p>
+        )}
+
+        {stock.detailsLoaded && stock.news.length > 0 && (
           <>
             <Separator />
             <div>

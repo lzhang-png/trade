@@ -6,7 +6,7 @@ import { useMarketData } from "@/lib/market-data-context";
 import { RadioIcon, RefreshCwIcon, WifiOffIcon } from "lucide-react";
 
 export function LiveDataBadge() {
-  const { live, loading, error, updatedAt, refresh } = useMarketData();
+  const { live, loading, enriching, error, updatedAt, refresh } = useMarketData();
 
   const timeLabel = updatedAt
     ? new Date(updatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
@@ -21,8 +21,8 @@ export function LiveDataBadge() {
         </Badge>
       ) : live ? (
         <Badge variant="default" className="gap-2 px-3 py-1 text-sm">
-          <RadioIcon className="animate-pulse" />
-          Live data
+          <RadioIcon className={enriching ? undefined : "animate-pulse"} />
+          {enriching ? "Live · loading details" : "Live data"}
           {timeLabel && <span className="opacity-70">· {timeLabel}</span>}
         </Badge>
       ) : (

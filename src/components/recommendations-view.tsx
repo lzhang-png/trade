@@ -7,7 +7,7 @@ import { LiveDataBadge } from "@/components/trading/live-data-badge";
 import { StockCard } from "@/components/stock-card";
 import { rankStocks } from "@/lib/recommendation-engine";
 import { useMarketData } from "@/lib/market-data-context";
-import { STOCK_UNIVERSE } from "@/lib/market-data";
+import { STOCK_UNIVERSE, UNIVERSE_CRITERIA } from "@/lib/market-data";
 import type { TimeHorizon } from "@/lib/types";
 import { TrendingUpIcon } from "lucide-react";
 
@@ -22,13 +22,12 @@ function CardSkeleton() {
           <Skeleton key={i} className="h-12" />
         ))}
       </div>
-      <Skeleton className="h-20 w-full" />
     </div>
   );
 }
 
 export function RecommendationsView() {
-  const { stocks, loading, live } = useMarketData();
+  const { stocks, loading, live, enriching } = useMarketData();
   const [horizon, setHorizon] = useState<TimeHorizon>("mid");
 
   const recommendations = useMemo(
@@ -37,6 +36,7 @@ export function RecommendationsView() {
   );
 
   const loadedCount = stocks.filter((s) => s.price > 0).length;
+  const detailedCount = stocks.filter((s) => s.detailsLoaded).length;
   const total = STOCK_UNIVERSE.length;
 
   return (
@@ -48,17 +48,36 @@ export function RecommendationsView() {
             <h1 className="text-2xl font-semibold md:text-3xl">TradeWise</h1>
           </div>
           <p className="max-w-xl text-muted-foreground">
-            {total} stocks ranked by live technical analysis — with fundamentals, analyst
-            sentiment, and recent news on each card.
+            {total} stocks ranked by live technical analysis — prices load first, then
+            fundamentals and news fill in on each card.
           </p>
           {loading && (
             <p className="text-sm text-muted-foreground">
-              Loading {loadedCount}/{total}…
+              Loading prices {loadedCount}/{total}…
+            </p>
+          )}
+          {!loading && enriching && (
+            <p className="text-sm text-muted-foreground">
+              Loading details {detailedCount}/{loadedCount}… (news, fundamentals)
             </p>
           )}
         </div>
         <LiveDataBadge />
       </header>
+
+      <details className="rounded-lg border bg-muted/20 px-4 py-3 text-sm">
+        <summary className="cursor-pointer font-medium">
+          How are these {total} stocks selected?
+        </summary>
+        <div className="mt-3 text-muted-foreground">
+          <p className="mb-2">{UNIVERSE_CRITERIA.summary}</p>
+          <ul className="list-inside list-disc space-y-1">
+            {UNIVERSE_CRITERIA.bullets.map((b) => (
+              <li key={b}>{b}</li>
+            ))}
+          </ul>
+        </div>
+      </details>
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">

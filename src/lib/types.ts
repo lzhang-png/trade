@@ -58,6 +58,8 @@ export interface Stock {
   history: PriceBar[];
   news: StockNews[];
   analystTrend: AnalystTrend | null;
+  /** False until fundamentals, news, and analyst data finish loading. */
+  detailsLoaded: boolean;
 }
 
 export interface TechnicalIndicators {

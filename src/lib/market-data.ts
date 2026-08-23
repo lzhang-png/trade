@@ -1,75 +1,26 @@
-import type { Sector, Stock } from "./types";
+import type { Stock } from "./types";
 import {
-  fetchFinnhubCandles,
   fetchFinnhubExtras,
   fetchFinnhubNews,
   fetchFinnhubQuote,
   fetchFinnhubRecommendation,
 } from "./finnhub-client";
+import { STOCK_UNIVERSE } from "./stock-universe";
+import { saveStockCache } from "./stock-cache";
 import { fetchYahooChart } from "./yahoo-finance";
 
-/** Static universe — sector labels only; all prices come from live APIs. */
-export const STOCK_UNIVERSE: Array<{ symbol: string; name: string; sector: Sector }> = [
-  // Technology
-  { symbol: "AAPL", name: "Apple Inc.", sector: "Technology" },
-  { symbol: "MSFT", name: "Microsoft Corp.", sector: "Technology" },
-  { symbol: "NVDA", name: "NVIDIA Corp.", sector: "Technology" },
-  { symbol: "GOOGL", name: "Alphabet Inc.", sector: "Technology" },
-  { symbol: "META", name: "Meta Platforms", sector: "Technology" },
-  { symbol: "AMD", name: "Advanced Micro Devices", sector: "Technology" },
-  { symbol: "INTC", name: "Intel Corp.", sector: "Technology" },
-  { symbol: "CRM", name: "Salesforce Inc.", sector: "Technology" },
-  { symbol: "ORCL", name: "Oracle Corp.", sector: "Technology" },
-  { symbol: "NFLX", name: "Netflix Inc.", sector: "Technology" },
-  { symbol: "AVGO", name: "Broadcom Inc.", sector: "Technology" },
-  { symbol: "PLTR", name: "Palantir Technologies", sector: "Technology" },
-  { symbol: "NOW", name: "ServiceNow Inc.", sector: "Technology" },
-  { symbol: "IBM", name: "IBM Corp.", sector: "Technology" },
-  // Consumer
-  { symbol: "AMZN", name: "Amazon.com Inc.", sector: "Consumer" },
-  { symbol: "TSLA", name: "Tesla Inc.", sector: "Consumer" },
-  { symbol: "COST", name: "Costco Wholesale", sector: "Consumer" },
-  { symbol: "WMT", name: "Walmart Inc.", sector: "Consumer" },
-  { symbol: "HD", name: "Home Depot Inc.", sector: "Consumer" },
-  { symbol: "DIS", name: "Walt Disney Co.", sector: "Consumer" },
-  { symbol: "NKE", name: "Nike Inc.", sector: "Consumer" },
-  { symbol: "UBER", name: "Uber Technologies", sector: "Consumer" },
-  { symbol: "ABNB", name: "Airbnb Inc.", sector: "Consumer" },
-  { symbol: "PYPL", name: "PayPal Holdings", sector: "Consumer" },
-  // Finance
-  { symbol: "JPM", name: "JPMorgan Chase", sector: "Finance" },
-  { symbol: "V", name: "Visa Inc.", sector: "Finance" },
-  { symbol: "MA", name: "Mastercard Inc.", sector: "Finance" },
-  { symbol: "BAC", name: "Bank of America", sector: "Finance" },
-  { symbol: "GS", name: "Goldman Sachs", sector: "Finance" },
-  { symbol: "BRK.B", name: "Berkshire Hathaway", sector: "Finance" },
-  // Healthcare
-  { symbol: "UNH", name: "UnitedHealth Group", sector: "Healthcare" },
-  { symbol: "JNJ", name: "Johnson & Johnson", sector: "Healthcare" },
-  { symbol: "LLY", name: "Eli Lilly & Co.", sector: "Healthcare" },
-  { symbol: "PFE", name: "Pfizer Inc.", sector: "Healthcare" },
-  { symbol: "ABBV", name: "AbbVie Inc.", sector: "Healthcare" },
-  { symbol: "MRK", name: "Merck & Co.", sector: "Healthcare" },
-  // Energy & Industrial
-  { symbol: "XOM", name: "Exxon Mobil", sector: "Energy" },
-  { symbol: "COP", name: "ConocoPhillips", sector: "Energy" },
-  { symbol: "CAT", name: "Caterpillar Inc.", sector: "Industrial" },
-  { symbol: "BA", name: "Boeing Co.", sector: "Industrial" },
-  { symbol: "GE", name: "GE Aerospace", sector: "Industrial" },
-  // ETFs
-  { symbol: "SPY", name: "SPDR S&P 500 ETF", sector: "ETF" },
-  { symbol: "QQQ", name: "Invesco QQQ Trust", sector: "ETF" },
-  { symbol: "IWM", name: "iShares Russell 2000", sector: "ETF" },
-  { symbol: "VTI", name: "Vanguard Total Stock Market", sector: "ETF" },
-  { symbol: "XLF", name: "Financial Select Sector SPDR", sector: "ETF" },
-  { symbol: "XLK", name: "Technology Select Sector SPDR", sector: "ETF" },
-];
+export { STOCK_UNIVERSE, UNIVERSE_CRITERIA } from "./stock-universe";
 
 export type MarketDataError =
   | "missing_key"
   | "invalid_key"
   | "fetch_failed"
   | "partial";
+
+const CORE_BATCH_SIZE = 6;
+const CORE_BATCH_DELAY_MS = 700;
+/** ~4 Finnhub calls per enrich × 1 stock every 4s ≈ 60 calls/min */
+const ENRICH_DELAY_MS = 4000;
 
 function emptyStock(def: (typeof STOCK_UNIVERSE)[0]): Stock {
   return {
@@ -91,6 +42,7 @@ function emptyStock(def: (typeof STOCK_UNIVERSE)[0]): Stock {
     history: [],
     news: [],
     analystTrend: null,
+    detailsLoaded: false,
   };
 }
 
@@ -107,10 +59,6 @@ export function setCachedStocks(stocks: Stock[]) {
   cachedStocks = stocks;
 }
 
-export function getStock(symbol: string): Stock | undefined {
-  return getAllStocks().find((s) => s.symbol === symbol);
-}
-
 function getFinnhubApiKey(): string | undefined {
   return (
     process.env.NEXT_PUBLIC_FINNHUB_API_KEY ||
@@ -119,66 +67,54 @@ function getFinnhubApiKey(): string | undefined {
   );
 }
 
-export function isFinnhubConfigured(): boolean {
-  return Boolean(getFinnhubApiKey());
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
 }
 
-interface ChartSlice {
-  price: number;
-  change: number;
-  changePercent: number;
-  history: Stock["history"];
-  name?: string;
-}
-
-async function fetchChartData(
-  symbol: string,
-  apiKey?: string
-): Promise<ChartSlice | null> {
-  if (apiKey) {
-    const finnhub = await fetchFinnhubCandles(symbol, apiKey);
-    if (finnhub) return finnhub;
-  }
-
-  const yahoo = await fetchYahooChart(symbol);
-  if (!yahoo) return null;
-
-  return {
-    price: yahoo.price,
-    change: yahoo.change,
-    changePercent: yahoo.changePercent,
-    history: yahoo.history,
-    name: yahoo.name,
-  };
-}
-
-async function fetchSymbolStock(
+/** Fast path: live quote + price history only (2 network calls, 1 Finnhub). */
+async function fetchSymbolCore(
   def: (typeof STOCK_UNIVERSE)[0],
   apiKey: string
-): Promise<Stock> {
-  const [chart, quote, extras, news, analystTrend] = await Promise.all([
-    fetchChartData(def.symbol, apiKey),
+): Promise<Stock | null> {
+  const [quote, chart] = await Promise.all([
     fetchFinnhubQuote(def.symbol, apiKey),
-    fetchFinnhubExtras(def.symbol, apiKey),
-    fetchFinnhubNews(def.symbol, apiKey),
-    fetchFinnhubRecommendation(def.symbol, apiKey),
+    fetchYahooChart(def.symbol),
   ]);
 
-  if (!chart) return emptyStock(def);
+  if (!chart && !quote) return null;
 
-  const price = quote?.c ?? chart.price;
-  const change = quote ? +(quote.d ?? 0).toFixed(2) : chart.change;
-  const changePercent = quote ? +(quote.dp ?? 0).toFixed(2) : chart.changePercent;
+  const history = chart?.history ?? [];
+  const price = quote?.c ?? chart?.price ?? 0;
+  if (price <= 0 || history.length < 2) return null;
+
+  const change = quote ? +(quote.d ?? 0).toFixed(2) : (chart?.change ?? 0);
+  const changePercent = quote ? +(quote.dp ?? 0).toFixed(2) : (chart?.changePercent ?? 0);
 
   return {
-    symbol: def.symbol,
-    name: extras.name ?? chart.name ?? def.name,
-    sector: def.sector,
-    industry: extras.industry,
-    website: extras.website,
+    ...emptyStock(def),
+    name: chart?.name ?? def.name,
     price,
     change,
     changePercent,
+    history,
+    detailsLoaded: false,
+  };
+}
+
+/** Slower path: fundamentals, news, analyst trends (runs in background). */
+async function enrichStock(stock: Stock, apiKey: string): Promise<Stock> {
+  const isEtf = stock.sector === "ETF";
+  const [extras, news, analystTrend] = await Promise.all([
+    fetchFinnhubExtras(stock.symbol, apiKey),
+    fetchFinnhubNews(stock.symbol, apiKey),
+    isEtf ? Promise.resolve(null) : fetchFinnhubRecommendation(stock.symbol, apiKey),
+  ]);
+
+  return {
+    ...stock,
+    name: extras.name ?? stock.name,
+    industry: extras.industry,
+    website: extras.website,
     marketCap: extras.marketCap,
     peRatio: extras.peRatio,
     dividendYield: extras.dividendYield,
@@ -188,10 +124,27 @@ async function fetchSymbolStock(
     revenueGrowth: extras.revenueGrowth,
     epsGrowth: extras.epsGrowth,
     roe: extras.roe,
-    history: chart.history,
     news,
     analystTrend,
+    detailsLoaded: true,
   };
+}
+
+async function enrichQueue(
+  stocks: Stock[],
+  apiKey: string,
+  onEnrich?: (stock: Stock) => void
+) {
+  for (const stock of stocks) {
+    if (stock.price <= 0) continue;
+    try {
+      const enriched = await enrichStock(stock, apiKey);
+      onEnrich?.(enriched);
+    } catch {
+      onEnrich?.({ ...stock, detailsLoaded: true });
+    }
+    await sleep(ENRICH_DELAY_MS);
+  }
 }
 
 export function marketDataErrorMessage(
@@ -210,10 +163,15 @@ export function marketDataErrorMessage(
   }
 }
 
-/** Fetch real market data for the full universe (Finnhub + Yahoo proxy fallback). */
+export interface FetchLiveStocksCallbacks {
+  onProgress?: (stock: Stock) => void;
+  onEnrich?: (stock: Stock) => void;
+}
+
+/** Phase 1: prices + charts in parallel batches. Phase 2: enrich in background. */
 export async function fetchLiveStocks(
   apiKey?: string,
-  onProgress?: (stock: Stock) => void
+  callbacks?: FetchLiveStocksCallbacks
 ): Promise<{
   stocks: Stock[];
   live: boolean;
@@ -222,6 +180,7 @@ export async function fetchLiveStocks(
   errorCode: MarketDataError | null;
 }> {
   const key = apiKey ?? getFinnhubApiKey();
+  const { onProgress, onEnrich } = callbacks ?? {};
 
   if (!key) {
     return {
@@ -246,23 +205,35 @@ export async function fetchLiveStocks(
 
   const results: Stock[] = [];
   const failedSymbols: string[] = [];
+  const liveStocks: Stock[] = [];
 
-  for (const def of STOCK_UNIVERSE) {
-    const stock = await fetchSymbolStock(def, key);
-    if (stock.price > 0 && stock.history.length > 0) {
-      results.push(stock);
-      onProgress?.(stock);
-    } else {
-      failedSymbols.push(def.symbol);
-      results.push(emptyStock(def));
+  for (let i = 0; i < STOCK_UNIVERSE.length; i += CORE_BATCH_SIZE) {
+    const batch = STOCK_UNIVERSE.slice(i, i + CORE_BATCH_SIZE);
+    const batchResults = await Promise.all(
+      batch.map(async (def) => {
+        const stock = await fetchSymbolCore(def, key);
+        if (stock) {
+          onProgress?.(stock);
+          liveStocks.push(stock);
+          return stock;
+        }
+        failedSymbols.push(def.symbol);
+        return emptyStock(def);
+      })
+    );
+    results.push(...batchResults);
+    saveStockCache(liveStocks);
+
+    if (i + CORE_BATCH_SIZE < STOCK_UNIVERSE.length) {
+      await sleep(CORE_BATCH_DELAY_MS);
     }
-    await new Promise((r) => setTimeout(r, 1100));
   }
 
-  const liveCount = results.filter((s) => s.history.length > 0 && s.price > 0).length;
+  const liveCount = liveStocks.length;
 
   if (liveCount > 0) {
-    setCachedStocks(results);
+    setCachedStocks(results.filter((s) => s.price > 0));
+    void enrichQueue(liveStocks, key, onEnrich);
   }
 
   return {
