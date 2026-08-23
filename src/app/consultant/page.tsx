@@ -12,7 +12,9 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 import { PageHeader } from "@/components/layout/page-header";
+import { LiveDataBadge } from "@/components/trading/live-data-badge";
 import { useApp } from "@/lib/app-context";
+import { useMarketData } from "@/lib/market-data-context";
 import { generateConsultantResponse } from "@/lib/consultant-fallback";
 import {
   SendIcon,
@@ -38,6 +40,7 @@ interface ChatMessage {
 
 export default function ConsultantPage() {
   const { portfolio, riskProfile, watchlist } = useApp();
+  const { stocks } = useMarketData();
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -59,7 +62,8 @@ export default function ConsultantPage() {
         text,
         portfolio,
         riskProfile,
-        watchlist.map((w) => w.symbol)
+        watchlist.map((w) => w.symbol),
+        stocks
       );
       setMessages((prev) => [
         ...prev,
@@ -75,6 +79,7 @@ export default function ConsultantPage() {
         icon={SparklesIcon}
         title="AI Trading Consultant"
         description="Ask for personalized buy/sell advice based on your portfolio and risk profile"
+        action={<LiveDataBadge />}
       />
 
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-4 lg:gap-6">

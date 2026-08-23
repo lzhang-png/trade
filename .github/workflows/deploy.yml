@@ -35,6 +35,8 @@ jobs:
         env:
           GITHUB_PAGES: true
           NEXT_PUBLIC_BASE_PATH: /trade
+          NEXT_PUBLIC_FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
+          FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

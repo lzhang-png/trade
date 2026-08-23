@@ -8,7 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { SignalBadge, ScoreBar } from "@/components/trading/signal-badge";
 import { PriceChart } from "@/components/charts/price-chart";
 import { useApp } from "@/lib/app-context";
-import { getStock } from "@/lib/market-data";
+import { useMarketData } from "@/lib/market-data-context";
 import type { Recommendation } from "@/lib/types";
 import { HORIZON_LABELS } from "@/lib/types";
 import {
@@ -23,6 +23,7 @@ import {
 
 export function RecommendationCard({ rec }: { rec: Recommendation }) {
   const { addToWatchlist, watchlist } = useApp();
+  const { getStock } = useMarketData();
   const stock = getStock(rec.symbol);
   const inWatchlist = watchlist.some((w) => w.symbol === rec.symbol);
 

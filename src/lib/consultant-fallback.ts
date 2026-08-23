@@ -1,14 +1,15 @@
 import { getAllStocks } from "./market-data";
 import { rankStocks } from "./recommendation-engine";
-import type { PortfolioPosition, RiskProfile } from "./types";
+import type { PortfolioPosition, RiskProfile, Stock } from "./types";
 
 export function generateConsultantResponse(
   question: string,
   portfolio: PortfolioPosition[],
   riskProfile: RiskProfile,
-  watchlist: string[]
+  watchlist: string[],
+  marketStocks?: Stock[]
 ): string {
-  const stocks = getAllStocks();
+  const stocks = marketStocks?.length ? marketStocks : getAllStocks();
   const shortPicks = rankStocks(stocks, "short", riskProfile).slice(0, 5);
   const midPicks = rankStocks(stocks, "mid", riskProfile).slice(0, 5);
 

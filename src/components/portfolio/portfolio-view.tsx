@@ -48,9 +48,11 @@ import {
 } from "@/components/ui/input-group";
 import { SignalBadge } from "@/components/trading/signal-badge";
 import { PageHeader } from "@/components/layout/page-header";
+import { LiveDataBadge } from "@/components/trading/live-data-badge";
 import { generatePortfolioAdvice } from "@/lib/recommendation-engine";
 import { useApp } from "@/lib/app-context";
-import type { Stock, TimeHorizon } from "@/lib/types";
+import { useMarketData } from "@/lib/market-data-context";
+import type { TimeHorizon } from "@/lib/types";
 import {
   BriefcaseIcon,
   PlusIcon,
@@ -59,8 +61,9 @@ import {
   DollarSignIcon,
 } from "lucide-react";
 
-export function PortfolioView({ stocks }: { stocks: Stock[] }) {
+export function PortfolioView() {
   const { portfolio, addPosition, removePosition } = useApp();
+  const { stocks } = useMarketData();
   const [open, setOpen] = useState(false);
   const [symbol, setSymbol] = useState("");
   const [shares, setShares] = useState("");
@@ -107,6 +110,8 @@ export function PortfolioView({ stocks }: { stocks: Stock[] }) {
         title="Portfolio"
         description="Track positions and get sell/hold recommendations"
         action={
+          <div className="flex flex-wrap items-center gap-2">
+            <LiveDataBadge />
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -184,6 +189,7 @@ export function PortfolioView({ stocks }: { stocks: Stock[] }) {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          </div>
         }
       />
 

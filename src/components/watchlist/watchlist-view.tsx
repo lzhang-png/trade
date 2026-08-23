@@ -20,13 +20,15 @@ import {
 } from "@/components/ui/empty";
 import { SignalBadge, PriceChange } from "@/components/trading/signal-badge";
 import { PageHeader } from "@/components/layout/page-header";
+import { LiveDataBadge } from "@/components/trading/live-data-badge";
 import { generateRecommendation } from "@/lib/recommendation-engine";
 import { useApp } from "@/lib/app-context";
-import type { Stock } from "@/lib/types";
+import { useMarketData } from "@/lib/market-data-context";
 import { StarIcon, Trash2Icon } from "lucide-react";
 
-export function WatchlistView({ stocks }: { stocks: Stock[] }) {
+export function WatchlistView() {
   const { watchlist, removeFromWatchlist, riskProfile } = useApp();
+  const { stocks } = useMarketData();
 
   const items = watchlist
     .map((item) => {
@@ -43,6 +45,7 @@ export function WatchlistView({ stocks }: { stocks: Stock[] }) {
         icon={StarIcon}
         title="Watchlist"
         description="Monitor stocks you're considering — add from the Dashboard or Scanner"
+        action={<LiveDataBadge />}
       />
 
       {items.length === 0 ? (

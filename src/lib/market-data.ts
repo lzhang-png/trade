@@ -35,7 +35,22 @@ function generateHistory(basePrice: number, days: number, seed: number): PriceBa
   return bars;
 }
 
-const STOCK_DEFS: Array<{
+/** Scale simulated OHLCV so the last close matches a live price. */
+export function scaleHistoryToPrice(history: PriceBar[], livePrice: number): PriceBar[] {
+  if (history.length === 0 || livePrice <= 0) return history;
+  const last = history[history.length - 1].close;
+  if (last <= 0) return history;
+  const factor = livePrice / last;
+  return history.map((bar) => ({
+    ...bar,
+    open: +(bar.open * factor).toFixed(2),
+    high: +(bar.high * factor).toFixed(2),
+    low: +(bar.low * factor).toFixed(2),
+    close: +(bar.close * factor).toFixed(2),
+  }));
+}
+
+export const STOCK_DEFS: Array<{
   symbol: string;
   name: string;
   sector: Sector;
@@ -88,6 +103,7 @@ function buildStock(def: (typeof STOCK_DEFS)[0]): Stock {
 
 let cache: Stock[] | null = null;
 
+/** Simulated fallback universe (used until live quotes load). */
 export function getAllStocks(): Stock[] {
   if (!cache) {
     cache = STOCK_DEFS.map(buildStock);
@@ -106,26 +122,85 @@ export function searchStocks(query: string): Stock[] {
   );
 }
 
-export async function fetchLiveQuote(symbol: string): Promise<Stock | null> {
-  const apiKey = process.env.FINNHUB_API_KEY;
-  if (!apiKey) return getStock(symbol) ?? null;
+export function getFinnhubApiKey(): string | undefined {
+  return (
+    process.env.NEXT_PUBLIC_FINNHUB_API_KEY ||
+    process.env.FINNHUB_API_KEY ||
+    undefined
+  );
+}
 
+export function isFinnhubConfigured(): boolean {
+  return Boolean(getFinnhubApiKey());
+}
+
+export interface FinnhubQuote {
+  c: number; // current
+  d: number; // change
+  dp: number; // percent change
+  h: number;
+  l: number;
+  o: number;
+  pc: number; // previous close
+  t: number;
+}
+
+export async function fetchFinnhubQuote(
+  symbol: string,
+  apiKey: string
+): Promise<FinnhubQuote | null> {
   try {
     const res = await fetch(
-      `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${apiKey}`,
-      { next: { revalidate: 60 } }
+      `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(symbol)}&token=${apiKey}`
     );
-    if (!res.ok) return getStock(symbol) ?? null;
-    const data = await res.json();
-    const stock = getStock(symbol);
-    if (!stock || !data.c) return stock ?? null;
-    return {
-      ...stock,
-      price: data.c,
-      change: data.d ?? 0,
-      changePercent: data.dp ?? 0,
-    };
+    if (!res.ok) return null;
+    const data = (await res.json()) as FinnhubQuote;
+    if (!data.c || data.c === 0) return null;
+    return data;
   } catch {
-    return getStock(symbol) ?? null;
+    return null;
   }
+}
+
+/** Fetch live quotes for the full universe; falls back to simulated on failure. */
+export async function fetchLiveStocks(apiKey?: string): Promise<{
+  stocks: Stock[];
+  live: boolean;
+  updatedAt: string | null;
+}> {
+  const key = apiKey ?? getFinnhubApiKey();
+  const base = getAllStocks();
+
+  if (!key) {
+    return { stocks: base, live: false, updatedAt: null };
+  }
+
+  // Free tier: 60 calls/min — batch sequentially with a tiny delay to stay safe
+  const results: Stock[] = [];
+  let liveCount = 0;
+
+  for (const stock of base) {
+    const quote = await fetchFinnhubQuote(stock.symbol, key);
+    if (quote) {
+      liveCount += 1;
+      const history = scaleHistoryToPrice(stock.history, quote.c);
+      results.push({
+        ...stock,
+        price: quote.c,
+        change: +(quote.d ?? 0).toFixed(2),
+        changePercent: +(quote.dp ?? 0).toFixed(2),
+        history,
+      });
+    } else {
+      results.push(stock);
+    }
+    // ~50ms between calls → ~20 quotes/sec, well under 60/min for 18 symbols
+    await new Promise((r) => setTimeout(r, 50));
+  }
+
+  return {
+    stocks: results,
+    live: liveCount > 0,
+    updatedAt: liveCount > 0 ? new Date().toISOString() : null,
+  };
 }

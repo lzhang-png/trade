@@ -1,12 +1,16 @@
 "use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { RecommendationCard } from "@/components/trading/recommendation-card";
 import { PriceChange } from "@/components/trading/signal-badge";
 import { PageHeader } from "@/components/layout/page-header";
+import { LiveDataBadge } from "@/components/trading/live-data-badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useApp } from "@/lib/app-context";
-import type { Recommendation, Stock } from "@/lib/types";
+import { useMarketData } from "@/lib/market-data-context";
+import { rankStocks } from "@/lib/recommendation-engine";
+import type { Stock } from "@/lib/types";
 import {
   TrendingUp,
   TrendingDown,
@@ -17,19 +21,12 @@ import {
   ArrowDownRight,
 } from "lucide-react";
 
-interface DashboardViewProps {
-  stocks: Stock[];
-  shortTermPicks: Recommendation[];
-  midTermPicks: Recommendation[];
-}
-
-export function DashboardView({
-  stocks,
-  shortTermPicks,
-  midTermPicks,
-}: DashboardViewProps) {
+export function DashboardView() {
   const { portfolio, riskProfile } = useApp();
+  const { stocks, loading } = useMarketData();
 
+  const shortTermPicks = rankStocks(stocks, "short", riskProfile).slice(0, 4);
+  const midTermPicks = rankStocks(stocks, "mid", riskProfile).slice(0, 4);
   const gainers = [...stocks].sort((a, b) => b.changePercent - a.changePercent).slice(0, 5);
   const losers = [...stocks].sort((a, b) => a.changePercent - b.changePercent).slice(0, 5);
 
@@ -48,37 +45,46 @@ export function DashboardView({
         icon={LayoutDashboard}
         title="Dashboard"
         description={`Your trading command center — ${riskProfile.preferredHorizon === "short" ? "short-term" : "mid-term"} focus`}
+        action={<LiveDataBadge />}
       />
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          icon={DollarSign}
-          label="Portfolio Value"
-          value={`$${portfolioValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-          sub={portfolio.length > 0 ? `${portfolio.length} positions` : "No positions yet"}
-        />
-        <StatCard
-          icon={portfolioPnL >= 0 ? TrendingUp : TrendingDown}
-          label="Total P&L"
-          value={`${portfolioPnL >= 0 ? "+" : ""}$${portfolioPnL.toFixed(2)}`}
-          sub={`${portfolioPnLPct >= 0 ? "+" : ""}${portfolioPnLPct.toFixed(2)}%`}
-          positive={portfolioPnL >= 0}
-        />
-        <StatCard
-          icon={Activity}
-          label="Market Movers"
-          value={gainers[0]?.symbol ?? "—"}
-          sub={gainers[0] ? `+${gainers[0].changePercent.toFixed(2)}% today` : ""}
-          positive
-        />
-        <StatCard
-          icon={TrendingUp}
-          label="Top Pick"
-          value={shortTermPicks[0]?.symbol ?? "—"}
-          sub={shortTermPicks[0] ? `Score: ${shortTermPicks[0].score}` : ""}
-          positive
-        />
-      </div>
+      {loading && stocks.every((s) => s.price === stocks[0]?.price) ? (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-28 w-full rounded-xl" />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <StatCard
+            icon={DollarSign}
+            label="Portfolio Value"
+            value={`$${portfolioValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+            sub={portfolio.length > 0 ? `${portfolio.length} positions` : "No positions yet"}
+          />
+          <StatCard
+            icon={portfolioPnL >= 0 ? TrendingUp : TrendingDown}
+            label="Total P&L"
+            value={`${portfolioPnL >= 0 ? "+" : ""}$${portfolioPnL.toFixed(2)}`}
+            sub={`${portfolioPnLPct >= 0 ? "+" : ""}${portfolioPnLPct.toFixed(2)}%`}
+            positive={portfolioPnL >= 0}
+          />
+          <StatCard
+            icon={Activity}
+            label="Market Movers"
+            value={gainers[0]?.symbol ?? "—"}
+            sub={gainers[0] ? `+${gainers[0].changePercent.toFixed(2)}% today` : ""}
+            positive
+          />
+          <StatCard
+            icon={TrendingUp}
+            label="Top Pick"
+            value={shortTermPicks[0]?.symbol ?? "—"}
+            sub={shortTermPicks[0] ? `Score: ${shortTermPicks[0].score}` : ""}
+            positive
+          />
+        </div>
+      )}
 
       <section className="flex flex-col gap-4">
         <div className="flex items-center gap-2">
@@ -138,11 +144,7 @@ function StatCard({
         <CardContent className="pt-0">
           <Badge
             variant={
-              positive === undefined
-                ? "outline"
-                : positive
-                  ? "default"
-                  : "destructive"
+              positive === undefined ? "outline" : positive ? "default" : "destructive"
             }
           >
             {sub}

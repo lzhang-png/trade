@@ -26,9 +26,11 @@ import {
 } from "@/components/ui/input-group";
 import { SignalBadge, ScoreBar, PriceChange } from "@/components/trading/signal-badge";
 import { PageHeader } from "@/components/layout/page-header";
+import { LiveDataBadge } from "@/components/trading/live-data-badge";
 import { rankStocks } from "@/lib/recommendation-engine";
 import { useApp } from "@/lib/app-context";
-import type { Stock, TimeHorizon } from "@/lib/types";
+import { useMarketData } from "@/lib/market-data-context";
+import type { TimeHorizon } from "@/lib/types";
 import { SearchIcon, ScanSearchIcon } from "lucide-react";
 
 const SIGNAL_FILTERS: Array<{ value: string; label: string }> = [
@@ -40,8 +42,9 @@ const SIGNAL_FILTERS: Array<{ value: string; label: string }> = [
   { value: "strong_sell", label: "Strong Sell" },
 ];
 
-export function ScannerView({ stocks }: { stocks: Stock[] }) {
+export function ScannerView() {
   const { riskProfile } = useApp();
+  const { stocks } = useMarketData();
   const [query, setQuery] = useState("");
   const [horizon, setHorizon] = useState<TimeHorizon>(riskProfile.preferredHorizon);
   const [signalFilter, setSignalFilter] = useState("all");
@@ -75,6 +78,7 @@ export function ScannerView({ stocks }: { stocks: Stock[] }) {
         icon={ScanSearchIcon}
         title="Market Scanner"
         description={`Scan ${stocks.length} assets for buy and sell opportunities`}
+        action={<LiveDataBadge />}
       />
 
       <Card>
