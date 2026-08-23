@@ -1,4 +1,4 @@
-import type { PriceBar, Sector, Stock } from "./types";
+import type { Sector, Stock } from "./types";
 import { fetchYahooChart, fetchYahooCharts } from "./yahoo-finance";
 
 /** Static universe — sector labels only; all prices come from live APIs. */
