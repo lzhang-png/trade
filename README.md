@@ -1,19 +1,17 @@
 # TradeWise
 
-A single-page stock screener that ranks 18 US stocks and ETFs by technical analysis score, using live market data from Finnhub.
+A single-page stock screener with **44 US stocks and ETFs**, each shown as a rich card with live data from Finnhub.
 
 **Live demo:** [https://lzhang-png.github.io/trade/](https://lzhang-png.github.io/trade/)
 
-## What it shows
+## Each card includes
 
-One table of recommended stocks with:
-
-- Live price and daily change
-- Buy/sell signal (Strong Buy → Strong Sell)
-- Conviction score (0–100) from RSI, MACD, and moving averages
-- RSI, target price, and stop-loss levels
-
-Toggle between **short-term** (1–4 weeks) and **mid-term** (1–6 months) analysis.
+- Live price, daily change, and 30-day sparkline
+- Buy/sell signal and conviction score (RSI, MACD, moving averages)
+- Fundamentals: market cap, P/E, dividend yield, beta, 52-week range, revenue/EPS growth, ROE
+- Target price and stop-loss levels
+- Analyst sentiment (Finnhub recommendation trends)
+- Recent company news headlines with links
 
 ## Data sources
 
