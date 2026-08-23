@@ -104,7 +104,7 @@ export function PortfolioView() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-8">
+    <div className="page-container">
       <PageHeader
         icon={BriefcaseIcon}
         title="Portfolio"
@@ -193,30 +193,30 @@ export function PortfolioView() {
         }
       />
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Value</CardTitle>
+      <div className="content-grid grid-cols-1 md:grid-cols-3">
+        <Card className="shadow-sm">
+          <CardHeader className="gap-2 pb-2">
+            <CardTitle className="text-base font-medium text-muted-foreground">Total Value</CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold tabular-nums">${totalValue.toFixed(2)}</p>
+          <CardContent className="pt-0">
+            <p className="text-3xl font-semibold tabular-nums">${totalValue.toFixed(2)}</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Cost</CardTitle>
+        <Card className="shadow-sm">
+          <CardHeader className="gap-2 pb-2">
+            <CardTitle className="text-base font-medium text-muted-foreground">Total Cost</CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold tabular-nums">${totalCost.toFixed(2)}</p>
+          <CardContent className="pt-0">
+            <p className="text-3xl font-semibold tabular-nums">${totalCost.toFixed(2)}</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Unrealized P&L</CardTitle>
+        <Card className="shadow-sm">
+          <CardHeader className="gap-2 pb-2">
+            <CardTitle className="text-base font-medium text-muted-foreground">Unrealized P&L</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0">
             <p
-              className={`text-2xl font-bold tabular-nums ${totalPnL >= 0 ? "text-primary" : "text-destructive"}`}
+              className={`text-3xl font-semibold tabular-nums ${totalPnL >= 0 ? "text-foreground" : "text-destructive"}`}
             >
               {totalPnL >= 0 ? "+" : ""}${totalPnL.toFixed(2)}
             </p>
@@ -243,11 +243,11 @@ export function PortfolioView() {
           </EmptyContent>
         </Empty>
       ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Holdings & Recommendations</CardTitle>
+        <Card className="shadow-sm">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg">Holdings & Recommendations</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-6 pb-6 md:px-8 md:pb-8">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -268,7 +268,7 @@ export function PortfolioView() {
                       <TableRow key={p.position.id}>
                         <TableCell>
                           <p className="font-semibold">{p.position.symbol}</p>
-                          <p className="text-xs text-muted-foreground">{p.position.name}</p>
+                          <p className="text-sm text-muted-foreground">{p.position.name}</p>
                         </TableCell>
                         <TableCell>{p.position.shares}</TableCell>
                         <TableCell className="tabular-nums">
@@ -276,7 +276,7 @@ export function PortfolioView() {
                         </TableCell>
                         <TableCell className="tabular-nums">${p.stock.price.toFixed(2)}</TableCell>
                         <TableCell
-                          className={`tabular-nums ${p.advice.gainLoss >= 0 ? "text-primary" : "text-destructive"}`}
+                          className={`tabular-nums ${p.advice.gainLoss >= 0 ? "text-foreground" : "text-destructive"}`}
                         >
                           {p.advice.gainLoss >= 0 ? "+" : ""}${p.advice.gainLoss.toFixed(2)}
                           <span className="ml-1 text-xs">
@@ -288,7 +288,7 @@ export function PortfolioView() {
                           <SignalBadge signal={p.advice.signal} />
                         </TableCell>
                         <TableCell className="max-w-[200px]">
-                          <p className="truncate text-xs text-muted-foreground">
+                          <p className="truncate text-sm text-muted-foreground">
                             {p.advice.reasons[0] ?? p.advice.risks[0] ?? "—"}
                           </p>
                         </TableCell>

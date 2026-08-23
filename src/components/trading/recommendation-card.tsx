@@ -35,57 +35,59 @@ export function RecommendationCard({ rec }: { rec: Recommendation }) {
   }
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-2">
+    <Card className="shadow-sm">
+      <CardHeader className="gap-4 pb-2">
+        <div className="flex items-start justify-between gap-4">
           <div>
-            <CardTitle className="text-base">{rec.symbol}</CardTitle>
-            <p className="mt-0.5 text-xs text-muted-foreground">{rec.name}</p>
+            <CardTitle className="text-lg">{rec.symbol}</CardTitle>
+            <p className="mt-1 text-sm text-muted-foreground">{rec.name}</p>
           </div>
           <SignalBadge signal={rec.signal} />
         </div>
-        <div className="mt-2 flex items-center gap-3">
-          <span className="text-2xl font-bold tabular-nums">${rec.price.toFixed(2)}</span>
-          <Badge variant="outline">{HORIZON_LABELS[rec.horizon]}</Badge>
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-3xl font-semibold tabular-nums">${rec.price.toFixed(2)}</span>
+          <Badge variant="outline" className="text-sm">
+            {HORIZON_LABELS[rec.horizon]}
+          </Badge>
         </div>
       </CardHeader>
 
-      <CardContent className="flex flex-col gap-4">
-        {stock && <PriceChart data={stock.history} sma20={rec.indicators.sma20} height={120} />}
+      <CardContent className="flex flex-col gap-6">
+        {stock && <PriceChart data={stock.history} sma20={rec.indicators.sma20} height={140} />}
 
         <div>
-          <div className="mb-1 flex justify-between text-xs text-muted-foreground">
+          <div className="mb-2 flex justify-between text-sm text-muted-foreground">
             <span>Conviction Score</span>
             <span>{rec.confidence.toFixed(0)}% confidence</span>
           </div>
           <ScoreBar score={rec.score} />
         </div>
 
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <div className="flex items-center gap-2 rounded-lg border bg-muted/40 p-2.5">
-            <TrendingUpIcon className="shrink-0 text-primary" />
+        <div className="grid grid-cols-2 gap-4 text-base">
+          <div className="flex items-center gap-3 rounded-lg border bg-muted/30 p-4">
+            <TrendingUpIcon className="shrink-0" />
             <div>
-              <p className="text-[10px] text-muted-foreground">Target</p>
+              <p className="text-sm text-muted-foreground">Target</p>
               <p className="font-semibold tabular-nums">${rec.targetPrice.toFixed(2)}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 rounded-lg border bg-muted/40 p-2.5">
-            <ShieldIcon className="shrink-0 text-destructive" />
+          <div className="flex items-center gap-3 rounded-lg border bg-muted/30 p-4">
+            <ShieldIcon className="shrink-0" />
             <div>
-              <p className="text-[10px] text-muted-foreground">Stop Loss</p>
+              <p className="text-sm text-muted-foreground">Stop Loss</p>
               <p className="font-semibold tabular-nums">${rec.stopLoss.toFixed(2)}</p>
             </div>
           </div>
         </div>
 
         {rec.reasons.length > 0 && (
-          <Alert>
+          <Alert className="py-3">
             <CircleCheckIcon />
-            <AlertTitle className="text-xs">Bullish Signals</AlertTitle>
+            <AlertTitle>Bullish Signals</AlertTitle>
             <AlertDescription>
-              <ul className="flex flex-col gap-1">
+              <ul className="flex flex-col gap-2">
                 {rec.reasons.slice(0, 3).map((r, i) => (
-                  <li key={i} className="text-xs">
+                  <li key={i} className="text-sm leading-relaxed">
                     {r}
                   </li>
                 ))}
@@ -95,13 +97,13 @@ export function RecommendationCard({ rec }: { rec: Recommendation }) {
         )}
 
         {rec.risks.length > 0 && (
-          <Alert variant="destructive">
+          <Alert variant="destructive" className="py-3">
             <TriangleAlertIcon />
-            <AlertTitle className="text-xs">Risks</AlertTitle>
+            <AlertTitle>Risks</AlertTitle>
             <AlertDescription>
-              <ul className="flex flex-col gap-1">
+              <ul className="flex flex-col gap-2">
                 {rec.risks.slice(0, 2).map((r, i) => (
-                  <li key={i} className="flex items-start gap-1.5 text-xs">
+                  <li key={i} className="flex items-start gap-2 text-sm leading-relaxed">
                     <TrendingDownIcon className="mt-0.5 shrink-0" />
                     {r}
                   </li>
@@ -112,10 +114,10 @@ export function RecommendationCard({ rec }: { rec: Recommendation }) {
         )}
       </CardContent>
 
-      <CardFooter className="gap-2">
+      <CardFooter className="gap-3 pt-2">
         <Button
           variant="outline"
-          size="sm"
+          size="default"
           className="flex-1"
           disabled={inWatchlist}
           onClick={handleWatchlist}
@@ -123,7 +125,7 @@ export function RecommendationCard({ rec }: { rec: Recommendation }) {
           <StarIcon data-icon="inline-start" />
           {inWatchlist ? "Watching" : "Watchlist"}
         </Button>
-        <Button size="sm" className="flex-1">
+        <Button size="default" className="flex-1">
           <PlusIcon data-icon="inline-start" />
           Add Position
         </Button>

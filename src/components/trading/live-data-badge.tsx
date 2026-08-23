@@ -13,27 +13,27 @@ export function LiveDataBadge() {
     : null;
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-3">
       {live ? (
-        <Badge variant="default" className="gap-1">
+        <Badge variant="default" className="gap-2 px-3 py-1 text-sm">
           <RadioIcon className="animate-pulse" />
           Live · Finnhub
           {timeLabel && <span className="opacity-70">· {timeLabel}</span>}
         </Badge>
       ) : error ? (
-        <Badge variant="destructive" className="gap-1">
+        <Badge variant="destructive" className="gap-2 px-3 py-1 text-sm">
           <WifiOffIcon />
           Offline
         </Badge>
       ) : (
-        <Badge variant="secondary" className="gap-1">
+        <Badge variant="secondary" className="gap-2 px-3 py-1 text-sm">
           <WifiOffIcon />
           Demo data
         </Badge>
       )}
       <Button
-        variant="ghost"
-        size="icon-sm"
+        variant="outline"
+        size="icon"
         onClick={() => void refresh()}
         disabled={loading}
         aria-label="Refresh market data"

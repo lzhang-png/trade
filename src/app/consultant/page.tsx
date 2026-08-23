@@ -74,7 +74,7 @@ export default function ConsultantPage() {
   }
 
   return (
-    <div className="flex min-h-[calc(100dvh-3.5rem)] flex-col gap-4 p-4 md:gap-6 md:p-8">
+    <div className="page-container min-h-[calc(100dvh-4rem)]">
       <PageHeader
         icon={SparklesIcon}
         title="AI Trading Consultant"
@@ -82,15 +82,15 @@ export default function ConsultantPage() {
         action={<LiveDataBadge />}
       />
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-4 lg:gap-6">
-        <Card className="flex min-h-[480px] flex-col lg:col-span-3 lg:min-h-0">
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-8 lg:grid-cols-4">
+        <Card className="flex min-h-[520px] flex-col shadow-sm lg:col-span-3 lg:min-h-0">
           <CardContent className="flex flex-1 flex-col p-0">
-            <ScrollArea className="flex-1 p-4 md:p-6">
+            <ScrollArea className="flex-1 p-6 md:p-8">
               {messages.length === 0 ? (
                 <div className="flex flex-col gap-4 md:gap-6">
                   <div className="py-6 text-center md:py-8">
                     <BotIcon className="mx-auto mb-4 text-primary" />
-                    <p className="mx-auto max-w-md px-2 text-sm text-muted-foreground">
+                    <p className="mx-auto max-w-md px-2 text-base text-muted-foreground">
                       I analyze technical indicators, your portfolio, and risk tolerance to give
                       actionable short and mid-term trading advice.
                     </p>
@@ -100,7 +100,7 @@ export default function ConsultantPage() {
                       <Button
                         key={prompt}
                         variant="outline"
-                        className="h-auto justify-start whitespace-normal py-3 text-left text-sm font-normal"
+                        className="h-auto justify-start whitespace-normal py-4 text-left text-base font-normal"
                         onClick={() => send(prompt)}
                       >
                         {prompt}
@@ -109,7 +109,7 @@ export default function ConsultantPage() {
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-6">
                   {messages.map((message) => (
                     <div
                       key={message.id}
@@ -121,7 +121,7 @@ export default function ConsultantPage() {
                         </div>
                       )}
                       <div
-                        className={`max-w-[90%] rounded-lg px-4 py-2.5 text-sm md:max-w-[80%] ${
+                        className={`max-w-[90%] rounded-lg px-5 py-3 text-base md:max-w-[80%] ${
                           message.role === "user"
                             ? "bg-primary text-primary-foreground"
                             : "bg-muted"
@@ -141,7 +141,7 @@ export default function ConsultantPage() {
                       <div className="flex size-8 items-center justify-center rounded-full bg-primary/15">
                         <Loader2Icon className="animate-spin text-primary" />
                       </div>
-                      <div className="rounded-lg bg-muted px-4 py-2.5 text-sm text-muted-foreground">
+                      <div className="rounded-lg bg-muted px-5 py-3 text-base text-muted-foreground">
                         Analyzing market data...
                       </div>
                     </div>
@@ -154,7 +154,7 @@ export default function ConsultantPage() {
                 e.preventDefault();
                 send(input);
               }}
-              className="border-t p-3 md:p-4"
+              className="border-t p-4 md:p-6"
             >
               <InputGroup>
                 <InputGroupInput
@@ -178,12 +178,12 @@ export default function ConsultantPage() {
           </CardContent>
         </Card>
 
-        <div className="hidden flex-col gap-4 lg:flex">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Your Profile</CardTitle>
+        <div className="hidden flex-col gap-6 lg:flex">
+          <Card className="shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Your Profile</CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-col gap-2 text-xs text-muted-foreground">
+            <CardContent className="flex flex-col gap-3 text-sm text-muted-foreground">
               <div className="flex items-center justify-between">
                 <span>Risk</span>
                 <Badge variant="outline" className="capitalize">

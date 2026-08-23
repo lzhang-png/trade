@@ -49,19 +49,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <SidebarProvider>
-      <Sidebar collapsible="icon">
-        <SidebarHeader>
+    <SidebarProvider className="text-base">
+      <Sidebar collapsible="icon" className="border-r">
+        <SidebarHeader className="p-4">
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton size="lg" asChild>
+              <SidebarMenuButton size="lg" asChild className="h-auto py-3">
                 <Link href="/">
-                  <div className="flex size-8 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                  <div className="flex size-9 items-center justify-center rounded-lg border bg-background">
                     <TrendingUp />
                   </div>
-                  <div className="flex flex-col gap-0.5 leading-none">
-                    <span className="font-semibold">TradeWise</span>
-                    <span className="text-xs text-muted-foreground">Trading Consultant</span>
+                  <div className="flex flex-col gap-1 leading-none">
+                    <span className="text-base font-semibold">TradeWise</span>
+                    <span className="text-sm text-muted-foreground">Trading Consultant</span>
                   </div>
                 </Link>
               </SidebarMenuButton>
@@ -69,14 +69,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </SidebarMenu>
         </SidebarHeader>
 
-        <SidebarContent>
-          <SidebarGroup>
-            <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+        <SidebarContent className="px-2">
+          <SidebarGroup className="py-2">
+            <SidebarGroupLabel className="px-3 text-sm">Navigation</SidebarGroupLabel>
             <SidebarGroupContent>
-              <SidebarMenu>
+              <SidebarMenu className="gap-1">
                 {NAV.map(({ href, label, icon: Icon }) => (
                   <SidebarMenuItem key={href}>
-                    <SidebarMenuButton asChild isActive={isActive(pathname, href)} tooltip={label}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive(pathname, href)}
+                      tooltip={label}
+                      className="h-10 px-3 text-base"
+                    >
                       <Link href={href}>
                         <Icon />
                         <span>{label}</span>
@@ -89,10 +94,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </SidebarGroup>
         </SidebarContent>
 
-        <SidebarFooter>
-          <Alert>
+        <SidebarFooter className="p-4">
+          <Alert className="py-3">
             <Info />
-            <AlertDescription className="text-xs">
+            <AlertDescription className="text-sm leading-relaxed">
               Not financial advice. For educational purposes only.
             </AlertDescription>
           </Alert>
@@ -101,12 +106,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </Sidebar>
 
       <SidebarInset>
-        <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
+        <header className="flex h-16 shrink-0 items-center gap-3 border-b px-6">
           <SidebarTrigger />
-          <Separator orientation="vertical" className="mr-2 h-4" />
+          <Separator orientation="vertical" className="h-5" />
           <div className="flex items-center gap-2 md:hidden">
-            <TrendingUp className="text-primary" />
-            <span className="text-sm font-semibold">TradeWise</span>
+            <TrendingUp />
+            <span className="text-base font-semibold">TradeWise</span>
           </div>
         </header>
         <div className="flex flex-1 flex-col">{children}</div>

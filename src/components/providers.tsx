@@ -8,7 +8,7 @@ import { MarketDataProvider } from "@/lib/market-data-context";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+    <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
       <TooltipProvider>
         <AppProvider>
           <MarketDataProvider>

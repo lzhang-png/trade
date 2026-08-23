@@ -46,15 +46,15 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-8">
+    <div className="page-container">
       <PageHeader
         icon={SettingsIcon}
         title="Settings"
         description="Configure your risk profile to personalize recommendations"
       />
 
-      <div className="flex max-w-2xl flex-col gap-6">
-        <Card>
+      <div className="flex max-w-2xl flex-col gap-8">
+        <Card className="shadow-sm">
           <CardHeader>
             <CardTitle className="text-base">Risk Tolerance</CardTitle>
             <CardDescription>How much volatility can you handle?</CardDescription>
@@ -89,7 +89,7 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="shadow-sm">
           <CardHeader>
             <CardTitle className="text-base">Investment Horizon</CardTitle>
             <CardDescription>Default time frame for recommendations</CardDescription>
@@ -117,7 +117,7 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="shadow-sm">
           <CardHeader>
             <CardTitle className="text-base">Max Position Size</CardTitle>
             <CardDescription>
@@ -139,7 +139,7 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="shadow-sm">
           <CardHeader>
             <CardTitle className="text-base">Max Drawdown Tolerance</CardTitle>
             <CardDescription>
@@ -160,7 +160,7 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="shadow-sm">
           <CardHeader>
             <CardTitle className="text-base">Preferred Sectors</CardTitle>
             <CardDescription>Recommendations will favor these sectors</CardDescription>

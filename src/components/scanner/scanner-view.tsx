@@ -73,7 +73,7 @@ export function ScannerView() {
   const sectors = [...new Set(stocks.map((s) => s.sector))];
 
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-8">
+    <div className="page-container">
       <PageHeader
         icon={ScanSearchIcon}
         title="Market Scanner"
@@ -81,9 +81,9 @@ export function ScannerView() {
         action={<LiveDataBadge />}
       />
 
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-wrap items-center gap-4">
+      <Card className="shadow-sm">
+        <CardContent className="p-6 md:p-8">
+          <div className="flex flex-wrap items-center gap-6">
             <InputGroup className="min-w-[200px] flex-1">
               <InputGroupAddon>
                 <SearchIcon />
@@ -133,13 +133,13 @@ export function ScannerView() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">
+      <Card className="shadow-sm">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg">
             {filtered.length} Results — sorted by conviction score
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-6 pb-6 md:px-8 md:pb-8">
           <Table>
             <TableHeader>
               <TableRow>
@@ -158,7 +158,7 @@ export function ScannerView() {
                 <TableRow key={rec.symbol}>
                   <TableCell>
                     <p className="font-semibold">{rec.symbol}</p>
-                    <p className="text-xs text-muted-foreground">{rec.name}</p>
+                      <p className="text-sm text-muted-foreground">{rec.name}</p>
                   </TableCell>
                   <TableCell className="tabular-nums">${rec.price.toFixed(2)}</TableCell>
                   <TableCell>
@@ -176,10 +176,8 @@ export function ScannerView() {
                     <ScoreBar score={rec.score} />
                   </TableCell>
                   <TableCell className="tabular-nums">{rec.indicators.rsi.toFixed(0)}</TableCell>
-                  <TableCell className="tabular-nums text-primary">
-                    ${rec.targetPrice.toFixed(2)}
-                  </TableCell>
-                  <TableCell className="tabular-nums text-destructive">
+                  <TableCell className="tabular-nums">${rec.targetPrice.toFixed(2)}</TableCell>
+                  <TableCell className="tabular-nums text-muted-foreground">
                     ${rec.stopLoss.toFixed(2)}
                   </TableCell>
                 </TableRow>

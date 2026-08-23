@@ -40,7 +40,7 @@ export function WatchlistView() {
     .filter(Boolean);
 
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-8">
+    <div className="page-container">
       <PageHeader
         icon={StarIcon}
         title="Watchlist"
@@ -61,11 +61,11 @@ export function WatchlistView() {
           </EmptyHeader>
         </Empty>
       ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">{items.length} Watched Stocks</CardTitle>
+        <Card className="shadow-sm">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg">{items.length} Watched Stocks</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-6 pb-6 md:px-8 md:pb-8">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -86,7 +86,7 @@ export function WatchlistView() {
                       <TableRow key={entry.item.symbol}>
                         <TableCell>
                           <p className="font-semibold">{entry.stock.symbol}</p>
-                          <p className="text-xs text-muted-foreground">{entry.stock.name}</p>
+                          <p className="text-sm text-muted-foreground">{entry.stock.name}</p>
                         </TableCell>
                         <TableCell className="tabular-nums">
                           ${entry.stock.price.toFixed(2)}
@@ -100,13 +100,11 @@ export function WatchlistView() {
                         <TableCell>
                           <SignalBadge signal={entry.rec.signal} />
                         </TableCell>
-                        <TableCell className="tabular-nums text-primary">
-                          ${entry.rec.targetPrice.toFixed(2)}
-                        </TableCell>
-                        <TableCell className="tabular-nums text-destructive">
+                        <TableCell className="tabular-nums">${entry.rec.targetPrice.toFixed(2)}</TableCell>
+                        <TableCell className="tabular-nums text-muted-foreground">
                           ${entry.rec.stopLoss.toFixed(2)}
                         </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
+                        <TableCell className="text-sm text-muted-foreground">
                           {new Date(entry.item.addedAt).toLocaleDateString()}
                         </TableCell>
                         <TableCell>

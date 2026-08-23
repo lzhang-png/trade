@@ -40,7 +40,7 @@ export function DashboardView() {
   const portfolioPnLPct = portfolioCost > 0 ? (portfolioPnL / portfolioCost) * 100 : 0;
 
   return (
-    <div className="flex flex-col gap-6 p-4 md:gap-8 md:p-8">
+    <div className="page-container">
       <PageHeader
         icon={LayoutDashboard}
         title="Dashboard"
@@ -49,13 +49,13 @@ export function DashboardView() {
       />
 
       {loading && stocks.every((s) => s.price === stocks[0]?.price) ? (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="content-grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-28 w-full rounded-xl" />
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="content-grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
           <StatCard
             icon={DollarSign}
             label="Portfolio Value"
@@ -86,31 +86,31 @@ export function DashboardView() {
         </div>
       )}
 
-      <section className="flex flex-col gap-4">
-        <div className="flex items-center gap-2">
-          <TrendingUp className="text-primary" />
-          <h2 className="text-lg font-semibold">Short-Term Picks (1–4 weeks)</h2>
+      <section className="section-stack">
+        <div className="flex items-center gap-3">
+          <TrendingUp />
+          <h2 className="text-xl font-semibold md:text-2xl">Short-Term Picks (1–4 weeks)</h2>
         </div>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="content-grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
           {shortTermPicks.map((rec) => (
             <RecommendationCard key={rec.symbol} rec={rec} />
           ))}
         </div>
       </section>
 
-      <section className="flex flex-col gap-4">
-        <div className="flex items-center gap-2">
-          <Activity className="text-primary" />
-          <h2 className="text-lg font-semibold">Mid-Term Picks (1–6 months)</h2>
+      <section className="section-stack">
+        <div className="flex items-center gap-3">
+          <Activity />
+          <h2 className="text-xl font-semibold md:text-2xl">Mid-Term Picks (1–6 months)</h2>
         </div>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="content-grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
           {midTermPicks.map((rec) => (
             <RecommendationCard key={`mid-${rec.symbol}`} rec={rec} />
           ))}
         </div>
       </section>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+      <div className="content-grid grid-cols-1 md:grid-cols-2">
         <MoversCard title="Top Gainers" stocks={gainers} icon={ArrowUpRight} />
         <MoversCard title="Top Losers" stocks={losers} icon={ArrowDownRight} />
       </div>
@@ -133,12 +133,12 @@ function StatCard({
 }) {
   return (
     <Card>
-      <CardHeader className="pb-2">
-        <CardDescription className="flex items-center gap-2">
+      <CardHeader className="gap-3 pb-4">
+        <CardDescription className="flex items-center gap-2 text-base">
           <Icon className="text-muted-foreground" />
           {label}
         </CardDescription>
-        <CardTitle className="text-2xl tabular-nums">{value}</CardTitle>
+        <CardTitle className="text-3xl tabular-nums">{value}</CardTitle>
       </CardHeader>
       {sub && (
         <CardContent className="pt-0">
@@ -166,21 +166,21 @@ function MoversCard({
 }) {
   return (
     <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Icon className="text-primary" />
+      <CardHeader className="pb-4">
+        <CardTitle className="flex items-center gap-3 text-lg md:text-xl">
+          <Icon />
           {title}
         </CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">
+      <CardContent className="flex flex-col gap-5">
         {stocks.map((stock) => (
-          <div key={stock.symbol} className="flex items-center justify-between">
+          <div key={stock.symbol} className="flex items-center justify-between gap-4 py-1">
             <div>
-              <p className="text-sm font-semibold">{stock.symbol}</p>
-              <p className="text-xs text-muted-foreground">{stock.name}</p>
+              <p className="text-base font-semibold">{stock.symbol}</p>
+              <p className="text-sm text-muted-foreground">{stock.name}</p>
             </div>
-            <div className="flex flex-col items-end gap-1">
-              <p className="text-sm font-medium tabular-nums">${stock.price.toFixed(2)}</p>
+            <div className="flex flex-col items-end gap-2">
+              <p className="text-base font-medium tabular-nums">${stock.price.toFixed(2)}</p>
               <PriceChange change={stock.change} changePercent={stock.changePercent} />
             </div>
           </div>

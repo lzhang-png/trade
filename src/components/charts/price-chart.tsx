@@ -27,41 +27,37 @@ export function PriceChart({ data, sma20, sma50, height = 200 }: PriceChartProps
 
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <LineChart data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
+      <LineChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
         <XAxis
           dataKey="date"
-          tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+          tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
           tickLine={false}
           axisLine={false}
           interval="preserveStartEnd"
         />
         <YAxis
           domain={["auto", "auto"]}
-          tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+          tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
           tickLine={false}
           axisLine={false}
-          width={50}
+          width={56}
           tickFormatter={(v) => `$${v}`}
         />
         <Tooltip
           contentStyle={{
-            background: "var(--card)",
+            background: "var(--popover)",
             border: "1px solid var(--border)",
-            borderRadius: "8px",
-            fontSize: "12px",
+            borderRadius: "var(--radius-lg)",
+            fontSize: "14px",
           }}
           formatter={(value) => [`$${Number(value).toFixed(2)}`, "Price"]}
         />
-        {sma20 && (
-          <ReferenceLine y={sma20} stroke="#f59e0b" strokeDasharray="3 3" />
-        )}
-        {sma50 && (
-          <ReferenceLine y={sma50} stroke="#8b5cf6" strokeDasharray="3 3" />
-        )}
+        {sma20 && <ReferenceLine y={sma20} stroke="var(--chart-3)" strokeDasharray="4 4" />}
+        {sma50 && <ReferenceLine y={sma50} stroke="var(--chart-2)" strokeDasharray="4 4" />}
         <Line
           type="monotone"
           dataKey="close"
-          stroke="#10b981"
+          stroke="var(--foreground)"
           strokeWidth={2}
           dot={false}
         />

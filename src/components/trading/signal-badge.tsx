@@ -40,8 +40,8 @@ export function SignalBadge({
 export function ScoreBar({ score, className }: { score: number; className?: string }) {
   return (
     <div className={cn("flex items-center gap-2", className)}>
-      <Progress value={score} className="h-1.5 flex-1" />
-      <span className="w-8 text-xs font-mono text-muted-foreground">{score}</span>
+      <Progress value={score} className="h-2 flex-1" />
+      <span className="w-10 text-sm font-mono text-muted-foreground">{score}</span>
     </div>
   );
 }

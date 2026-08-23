@@ -17,17 +17,22 @@ export function PageHeader({
   className,
 }: PageHeaderProps) {
   return (
-    <div className={cn("flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between", className)}>
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center gap-2">
-          {Icon && <Icon className="text-primary" />}
-          <h1 className="text-xl font-bold tracking-tight md:text-2xl">{title}</h1>
+    <div
+      className={cn(
+        "flex flex-col gap-6 pb-2 sm:flex-row sm:items-start sm:justify-between",
+        className
+      )}
+    >
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-3">
+          {Icon && <Icon className="size-6 text-foreground" />}
+          <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">{title}</h1>
         </div>
         {description && (
-          <p className="text-sm text-muted-foreground">{description}</p>
+          <p className="max-w-2xl text-base text-muted-foreground md:text-lg">{description}</p>
         )}
       </div>
-      {action}
+      {action && <div className="shrink-0">{action}</div>}
     </div>
   );
 }
