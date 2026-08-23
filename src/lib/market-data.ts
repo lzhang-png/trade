@@ -1,32 +1,68 @@
 import type { Sector, Stock } from "./types";
 import {
   fetchFinnhubCandles,
-  fetchFinnhubMetrics,
-  fetchFinnhubProfile,
+  fetchFinnhubExtras,
+  fetchFinnhubNews,
   fetchFinnhubQuote,
+  fetchFinnhubRecommendation,
 } from "./finnhub-client";
 import { fetchYahooChart } from "./yahoo-finance";
 
 /** Static universe — sector labels only; all prices come from live APIs. */
 export const STOCK_UNIVERSE: Array<{ symbol: string; name: string; sector: Sector }> = [
+  // Technology
   { symbol: "AAPL", name: "Apple Inc.", sector: "Technology" },
   { symbol: "MSFT", name: "Microsoft Corp.", sector: "Technology" },
   { symbol: "NVDA", name: "NVIDIA Corp.", sector: "Technology" },
   { symbol: "GOOGL", name: "Alphabet Inc.", sector: "Technology" },
-  { symbol: "AMZN", name: "Amazon.com Inc.", sector: "Consumer" },
   { symbol: "META", name: "Meta Platforms", sector: "Technology" },
+  { symbol: "AMD", name: "Advanced Micro Devices", sector: "Technology" },
+  { symbol: "INTC", name: "Intel Corp.", sector: "Technology" },
+  { symbol: "CRM", name: "Salesforce Inc.", sector: "Technology" },
+  { symbol: "ORCL", name: "Oracle Corp.", sector: "Technology" },
+  { symbol: "NFLX", name: "Netflix Inc.", sector: "Technology" },
+  { symbol: "AVGO", name: "Broadcom Inc.", sector: "Technology" },
+  { symbol: "PLTR", name: "Palantir Technologies", sector: "Technology" },
+  { symbol: "NOW", name: "ServiceNow Inc.", sector: "Technology" },
+  { symbol: "IBM", name: "IBM Corp.", sector: "Technology" },
+  // Consumer
+  { symbol: "AMZN", name: "Amazon.com Inc.", sector: "Consumer" },
+  { symbol: "TSLA", name: "Tesla Inc.", sector: "Consumer" },
+  { symbol: "COST", name: "Costco Wholesale", sector: "Consumer" },
+  { symbol: "WMT", name: "Walmart Inc.", sector: "Consumer" },
+  { symbol: "HD", name: "Home Depot Inc.", sector: "Consumer" },
+  { symbol: "DIS", name: "Walt Disney Co.", sector: "Consumer" },
+  { symbol: "NKE", name: "Nike Inc.", sector: "Consumer" },
+  { symbol: "UBER", name: "Uber Technologies", sector: "Consumer" },
+  { symbol: "ABNB", name: "Airbnb Inc.", sector: "Consumer" },
+  { symbol: "PYPL", name: "PayPal Holdings", sector: "Consumer" },
+  // Finance
   { symbol: "JPM", name: "JPMorgan Chase", sector: "Finance" },
   { symbol: "V", name: "Visa Inc.", sector: "Finance" },
+  { symbol: "MA", name: "Mastercard Inc.", sector: "Finance" },
+  { symbol: "BAC", name: "Bank of America", sector: "Finance" },
+  { symbol: "GS", name: "Goldman Sachs", sector: "Finance" },
+  { symbol: "BRK.B", name: "Berkshire Hathaway", sector: "Finance" },
+  // Healthcare
   { symbol: "UNH", name: "UnitedHealth Group", sector: "Healthcare" },
   { symbol: "JNJ", name: "Johnson & Johnson", sector: "Healthcare" },
+  { symbol: "LLY", name: "Eli Lilly & Co.", sector: "Healthcare" },
+  { symbol: "PFE", name: "Pfizer Inc.", sector: "Healthcare" },
+  { symbol: "ABBV", name: "AbbVie Inc.", sector: "Healthcare" },
+  { symbol: "MRK", name: "Merck & Co.", sector: "Healthcare" },
+  // Energy & Industrial
   { symbol: "XOM", name: "Exxon Mobil", sector: "Energy" },
+  { symbol: "COP", name: "ConocoPhillips", sector: "Energy" },
   { symbol: "CAT", name: "Caterpillar Inc.", sector: "Industrial" },
+  { symbol: "BA", name: "Boeing Co.", sector: "Industrial" },
+  { symbol: "GE", name: "GE Aerospace", sector: "Industrial" },
+  // ETFs
   { symbol: "SPY", name: "SPDR S&P 500 ETF", sector: "ETF" },
   { symbol: "QQQ", name: "Invesco QQQ Trust", sector: "ETF" },
   { symbol: "IWM", name: "iShares Russell 2000", sector: "ETF" },
-  { symbol: "TSLA", name: "Tesla Inc.", sector: "Consumer" },
-  { symbol: "AMD", name: "Advanced Micro Devices", sector: "Technology" },
-  { symbol: "LLY", name: "Eli Lilly & Co.", sector: "Healthcare" },
+  { symbol: "VTI", name: "Vanguard Total Stock Market", sector: "ETF" },
+  { symbol: "XLF", name: "Financial Select Sector SPDR", sector: "ETF" },
+  { symbol: "XLK", name: "Technology Select Sector SPDR", sector: "ETF" },
 ];
 
 export type MarketDataError =
@@ -46,7 +82,15 @@ function emptyStock(def: (typeof STOCK_UNIVERSE)[0]): Stock {
     marketCap: "—",
     peRatio: null,
     dividendYield: null,
+    week52High: null,
+    week52Low: null,
+    beta: null,
+    revenueGrowth: null,
+    epsGrowth: null,
+    roe: null,
     history: [],
+    news: [],
+    analystTrend: null,
   };
 }
 
@@ -67,14 +111,7 @@ export function getStock(symbol: string): Stock | undefined {
   return getAllStocks().find((s) => s.symbol === symbol);
 }
 
-export function searchStocks(query: string): Stock[] {
-  const q = query.toLowerCase();
-  return getAllStocks().filter(
-    (s) => s.symbol.toLowerCase().includes(q) || s.name.toLowerCase().includes(q)
-  );
-}
-
-export function getFinnhubApiKey(): string | undefined {
+function getFinnhubApiKey(): string | undefined {
   return (
     process.env.NEXT_PUBLIC_FINNHUB_API_KEY ||
     process.env.FINNHUB_API_KEY ||
@@ -84,37 +121,6 @@ export function getFinnhubApiKey(): string | undefined {
 
 export function isFinnhubConfigured(): boolean {
   return Boolean(getFinnhubApiKey());
-}
-
-function formatMarketCap(value: number | undefined): string {
-  if (!value) return "—";
-  if (value >= 1e12) return `${(value / 1e12).toFixed(1)}T`;
-  if (value >= 1e9) return `${(value / 1e9).toFixed(0)}B`;
-  if (value >= 1e6) return `${(value / 1e6).toFixed(0)}M`;
-  return value.toLocaleString();
-}
-
-async function fetchFundamentals(symbol: string, apiKey: string) {
-  const [profile, metrics] = await Promise.all([
-    fetchFinnhubProfile(symbol, apiKey),
-    fetchFinnhubMetrics(symbol, apiKey),
-  ]);
-
-  let marketCap = "—";
-  let peRatio: number | null = null;
-  let dividendYield: number | null = null;
-
-  if (profile?.marketCapitalization) {
-    marketCap = formatMarketCap(profile.marketCapitalization * 1_000_000);
-  }
-  if (metrics?.metric?.peBasicExclExtraTTM) {
-    peRatio = +metrics.metric.peBasicExclExtraTTM.toFixed(1);
-  }
-  if (metrics?.metric?.dividendYieldIndicatedAnnual != null) {
-    dividendYield = +metrics.metric.dividendYieldIndicatedAnnual.toFixed(2);
-  }
-
-  return { marketCap, peRatio, dividendYield, name: profile?.name };
 }
 
 interface ChartSlice {
@@ -148,12 +154,14 @@ async function fetchChartData(
 
 async function fetchSymbolStock(
   def: (typeof STOCK_UNIVERSE)[0],
-  apiKey?: string
+  apiKey: string
 ): Promise<Stock> {
-  const [chart, quote, fundamentals] = await Promise.all([
+  const [chart, quote, extras, news, analystTrend] = await Promise.all([
     fetchChartData(def.symbol, apiKey),
-    apiKey ? fetchFinnhubQuote(def.symbol, apiKey) : Promise.resolve(null),
-    apiKey ? fetchFundamentals(def.symbol, apiKey) : Promise.resolve(null),
+    fetchFinnhubQuote(def.symbol, apiKey),
+    fetchFinnhubExtras(def.symbol, apiKey),
+    fetchFinnhubNews(def.symbol, apiKey),
+    fetchFinnhubRecommendation(def.symbol, apiKey),
   ]);
 
   if (!chart) return emptyStock(def);
@@ -164,15 +172,25 @@ async function fetchSymbolStock(
 
   return {
     symbol: def.symbol,
-    name: fundamentals?.name ?? chart.name ?? def.name,
+    name: extras.name ?? chart.name ?? def.name,
     sector: def.sector,
+    industry: extras.industry,
+    website: extras.website,
     price,
     change,
     changePercent,
-    marketCap: fundamentals?.marketCap ?? "—",
-    peRatio: fundamentals?.peRatio ?? null,
-    dividendYield: fundamentals?.dividendYield ?? null,
+    marketCap: extras.marketCap,
+    peRatio: extras.peRatio,
+    dividendYield: extras.dividendYield,
+    week52High: extras.week52High,
+    week52Low: extras.week52Low,
+    beta: extras.beta,
+    revenueGrowth: extras.revenueGrowth,
+    epsGrowth: extras.epsGrowth,
+    roe: extras.roe,
     history: chart.history,
+    news,
+    analystTrend,
   };
 }
 
@@ -238,7 +256,6 @@ export async function fetchLiveStocks(
       failedSymbols.push(def.symbol);
       results.push(emptyStock(def));
     }
-    // Stay under Finnhub free-tier rate limits (~60/min).
     await new Promise((r) => setTimeout(r, 1100));
   }
 

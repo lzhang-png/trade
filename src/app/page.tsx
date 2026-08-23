@@ -1,5 +1,5 @@
-import { RecommendationsTable } from "@/components/recommendations-table";
+import { RecommendationsView } from "@/components/recommendations-view";
 
 export default function HomePage() {
-  return <RecommendationsTable />;
+  return <RecommendationsView />;
 }

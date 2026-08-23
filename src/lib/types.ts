@@ -20,17 +20,44 @@ export interface PriceBar {
   volume: number;
 }
 
+export interface StockNews {
+  headline: string;
+  source: string;
+  datetime: number;
+  url: string;
+  summary?: string;
+}
+
+export interface AnalystTrend {
+  period: string;
+  strongBuy: number;
+  buy: number;
+  hold: number;
+  sell: number;
+  strongSell: number;
+}
+
 export interface Stock {
   symbol: string;
   name: string;
   sector: Sector;
+  industry?: string;
+  website?: string;
   price: number;
   change: number;
   changePercent: number;
   marketCap: string;
   peRatio: number | null;
   dividendYield: number | null;
+  week52High: number | null;
+  week52Low: number | null;
+  beta: number | null;
+  revenueGrowth: number | null;
+  epsGrowth: number | null;
+  roe: number | null;
   history: PriceBar[];
+  news: StockNews[];
+  analystTrend: AnalystTrend | null;
 }
 
 export interface TechnicalIndicators {
