@@ -188,7 +188,7 @@ export function StockCard({
           </div>
         </div>
 
-        {analyst && (
+        {stock.detailsLoaded && analyst && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <BarChart3Icon className="size-4 shrink-0" />
             <span>{analyst}</span>
