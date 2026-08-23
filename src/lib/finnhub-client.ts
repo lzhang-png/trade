@@ -1,5 +1,5 @@
 import { fetchJson } from "./cors-fetch";
-import type { AnalystTrend, PriceBar, StockNews } from "./types";
+import type { AnalystTrend, PriceBar, StockNews, SymbolSearchResult } from "./types";
 
 const FINNHUB_BASE = "https://finnhub.io/api/v1";
 
@@ -234,4 +234,51 @@ export async function fetchFinnhubCandles(
     changePercent: +changePercent.toFixed(2),
     history,
   };
+}
+
+const US_SYMBOL_TYPES = new Set([
+  "Common Stock",
+  "ETF",
+  "ADR",
+  "EQUITY",
+  "Closed-End Fund",
+  "REIT",
+]);
+
+/** Search US-listed stocks and ETFs via Finnhub symbol lookup. */
+export async function searchUsSymbols(
+  query: string,
+  apiKey: string
+): Promise<SymbolSearchResult[]> {
+  const q = query.trim();
+  if (q.length < 1) return [];
+
+  const data = await fetchJson<{
+    result?: Array<{
+      symbol: string;
+      displaySymbol?: string;
+      description?: string;
+      type?: string;
+    }>;
+  }>(finnhubUrl(`/search?q=${encodeURIComponent(q)}&exchange=US`, apiKey), true);
+
+  if (!data?.result) return [];
+
+  const seen = new Set<string>();
+  return data.result
+    .filter((r) => {
+      const type = r.type ?? "";
+      if (!US_SYMBOL_TYPES.has(type) && !type.toLowerCase().includes("etf")) return false;
+      const sym = r.displaySymbol ?? r.symbol;
+      if (seen.has(sym)) return false;
+      seen.add(sym);
+      return true;
+    })
+    .slice(0, 15)
+    .map((r) => ({
+      symbol: r.displaySymbol ?? r.symbol,
+      displaySymbol: r.displaySymbol ?? r.symbol,
+      description: r.description ?? r.symbol,
+      type: r.type ?? "Common Stock",
+    }));
 }

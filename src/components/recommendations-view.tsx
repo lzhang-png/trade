@@ -3,13 +3,17 @@
 import { useMemo, useState } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { LiveDataBadge } from "@/components/trading/live-data-badge";
+import { StockSearch } from "@/components/stock-search";
 import { StockCard } from "@/components/stock-card";
 import { rankStocks } from "@/lib/recommendation-engine";
 import { useMarketData } from "@/lib/market-data-context";
+import { useWatchlist } from "@/lib/watchlist-context";
 import { STOCK_UNIVERSE, UNIVERSE_CRITERIA } from "@/lib/market-data";
 import type { TimeHorizon } from "@/lib/types";
-import { TrendingUpIcon } from "lucide-react";
+import { StarIcon, TrendingUpIcon, Trash2Icon } from "lucide-react";
+import { toast } from "sonner";
 
 function CardSkeleton() {
   return (
@@ -28,16 +32,39 @@ function CardSkeleton() {
 
 export function RecommendationsView() {
   const { stocks, loading, live, enriching } = useMarketData();
+  const { watchlist, remove } = useWatchlist();
   const [horizon, setHorizon] = useState<TimeHorizon>("mid");
+  const [view, setView] = useState<"featured" | "watchlist">("featured");
 
-  const recommendations = useMemo(
-    () => rankStocks(stocks, horizon),
-    [stocks, horizon]
+  const featuredSymbols = new Set(STOCK_UNIVERSE.map((s) => s.symbol));
+
+  const featuredStocks = useMemo(
+    () => stocks.filter((s) => featuredSymbols.has(s.symbol)),
+    [stocks, featuredSymbols]
   );
 
-  const loadedCount = stocks.filter((s) => s.price > 0).length;
-  const detailedCount = stocks.filter((s) => s.detailsLoaded).length;
-  const total = STOCK_UNIVERSE.length;
+  const watchlistStocks = useMemo(
+    () =>
+      watchlist
+        .map((w) => stocks.find((s) => s.symbol === w.symbol))
+        .filter((s): s is NonNullable<typeof s> => Boolean(s && s.price > 0)),
+    [watchlist, stocks]
+  );
+
+  const featuredRecs = useMemo(
+    () => rankStocks(featuredStocks, horizon),
+    [featuredStocks, horizon]
+  );
+
+  const watchlistRecs = useMemo(
+    () => rankStocks(watchlistStocks, horizon),
+    [watchlistStocks, horizon]
+  );
+
+  const activeRecs = view === "watchlist" ? watchlistRecs : featuredRecs;
+
+  const loadedFeatured = featuredStocks.filter((s) => s.price > 0).length;
+  const totalFeatured = STOCK_UNIVERSE.length;
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-8 md:px-8 md:py-12">
@@ -48,43 +75,33 @@ export function RecommendationsView() {
             <h1 className="text-2xl font-semibold md:text-3xl">TradeWise</h1>
           </div>
           <p className="max-w-xl text-muted-foreground">
-            {total} stocks ranked by live technical analysis — prices load first, then
-            fundamentals and news fill in on each card.
+            Search any US stock or ETF, build your watchlist, and get live technical
+            scores with fundamentals and news.
           </p>
-          {loading && (
+          {loading && view === "featured" && (
             <p className="text-sm text-muted-foreground">
-              Loading prices {loadedCount}/{total}…
+              Loading featured prices {loadedFeatured}/{totalFeatured}…
             </p>
           )}
           {!loading && enriching && (
-            <p className="text-sm text-muted-foreground">
-              Loading details {detailedCount}/{loadedCount}… (news, fundamentals)
-            </p>
+            <p className="text-sm text-muted-foreground">Loading card details…</p>
           )}
         </div>
         <LiveDataBadge />
       </header>
 
-      <details className="rounded-lg border bg-muted/20 px-4 py-3 text-sm">
-        <summary className="cursor-pointer font-medium">
-          How are these {total} stocks selected?
-        </summary>
-        <div className="mt-3 text-muted-foreground">
-          <p className="mb-2">{UNIVERSE_CRITERIA.summary}</p>
-          <ul className="list-inside list-disc space-y-1">
-            {UNIVERSE_CRITERIA.bullets.map((b) => (
-              <li key={b}>{b}</li>
-            ))}
-          </ul>
-        </div>
-      </details>
+      <StockSearch />
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-muted-foreground">
-          {recommendations.length > 0
-            ? `${recommendations.length} recommendations — highest score first`
-            : "Waiting for market data…"}
-        </p>
+        <Tabs value={view} onValueChange={(v) => setView(v as "featured" | "watchlist")}>
+          <TabsList>
+            <TabsTrigger value="featured">Featured ({totalFeatured})</TabsTrigger>
+            <TabsTrigger value="watchlist">
+              <StarIcon data-icon="inline-start" className="size-4" />
+              Watchlist ({watchlist.length})
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
         <Tabs value={horizon} onValueChange={(v) => setHorizon(v as TimeHorizon)}>
           <TabsList>
             <TabsTrigger value="short">Short-term</TabsTrigger>
@@ -93,24 +110,78 @@ export function RecommendationsView() {
         </Tabs>
       </div>
 
+      {view === "featured" && (
+        <details className="rounded-lg border bg-muted/20 px-4 py-3 text-sm">
+          <summary className="cursor-pointer font-medium">
+            How are the featured {totalFeatured} stocks selected?
+          </summary>
+          <div className="mt-3 text-muted-foreground">
+            <p className="mb-2">{UNIVERSE_CRITERIA.summary}</p>
+            <ul className="list-inside list-disc space-y-1">
+              {UNIVERSE_CRITERIA.bullets.map((b) => (
+                <li key={b}>{b}</li>
+              ))}
+            </ul>
+          </div>
+        </details>
+      )}
+
+      {view === "watchlist" && watchlist.length === 0 && (
+        <div className="rounded-lg border border-dashed px-6 py-12 text-center">
+          <StarIcon className="mx-auto mb-3 size-8 text-muted-foreground" />
+          <p className="font-medium">Your watchlist is empty</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Use the search bar above to find any US stock or ETF and tap Add.
+          </p>
+        </div>
+      )}
+
+      {view === "watchlist" && watchlist.length > 0 && watchlistRecs.length === 0 && (
+        <p className="text-center text-sm text-muted-foreground">
+          Loading watchlist data…
+        </p>
+      )}
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {loading && loadedCount === 0 ? (
+        {view === "featured" && loading && loadedFeatured === 0 ? (
           Array.from({ length: 6 }).map((_, i) => <CardSkeleton key={i} />)
-        ) : recommendations.length === 0 ? (
+        ) : activeRecs.length === 0 && view === "featured" ? (
           <p className="col-span-full py-16 text-center text-muted-foreground">
             No live data yet. Tap refresh once market data loads.
           </p>
         ) : (
-          recommendations.map((rec) => {
+          activeRecs.map((rec) => {
             const stock = stocks.find((s) => s.symbol === rec.symbol);
             if (!stock) return null;
-            return <StockCard key={rec.symbol} stock={stock} rec={rec} />;
+            return (
+              <div key={rec.symbol} className="relative">
+                {view === "watchlist" && (
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="absolute right-3 top-3 z-10"
+                    onClick={() => {
+                      remove(rec.symbol);
+                      toast.info(`Removed ${rec.symbol} from watchlist`);
+                    }}
+                    aria-label={`Remove ${rec.symbol} from watchlist`}
+                  >
+                    <Trash2Icon />
+                  </Button>
+                )}
+                <StockCard
+                  stock={stock}
+                  rec={rec}
+                  showWatchlistAction={view === "featured"}
+                />
+              </div>
+            );
           })
         )}
       </div>
 
       <p className="text-center text-sm text-muted-foreground">
-        Not financial advice. Data from Finnhub — prices, fundamentals, news, and analyst trends.
+        Not financial advice. Search powered by Finnhub — covers US-listed stocks and ETFs.
       </p>
     </div>
   );

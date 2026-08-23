@@ -1,4 +1,4 @@
-import type { Stock } from "./types";
+import type { Sector, Stock } from "./types";
 import {
   fetchFinnhubExtras,
   fetchFinnhubNews,
@@ -22,7 +22,52 @@ const CORE_BATCH_DELAY_MS = 700;
 /** ~4 Finnhub calls per enrich × 1 stock every 4s ≈ 60 calls/min */
 const ENRICH_DELAY_MS = 4000;
 
-function emptyStock(def: (typeof STOCK_UNIVERSE)[0]): Stock {
+function getFinnhubApiKey(): string | undefined {
+  return (
+    process.env.NEXT_PUBLIC_FINNHUB_API_KEY ||
+    process.env.FINNHUB_API_KEY ||
+    undefined
+  );
+}
+
+export function getApiKeyForClient(): string | undefined {
+  return getFinnhubApiKey();
+}
+
+export function sectorFromSymbolType(type: string): Sector {
+  if (type.toLowerCase().includes("etf") || type.toLowerCase().includes("fund")) {
+    return "ETF";
+  }
+  return "Other";
+}
+
+function inferSectorFromIndustry(industry?: string): Sector {
+  if (!industry) return "Other";
+  const i = industry.toLowerCase();
+  if (i.includes("tech") || i.includes("software") || i.includes("semiconductor")) {
+    return "Technology";
+  }
+  if (i.includes("health") || i.includes("pharma") || i.includes("biotech")) {
+    return "Healthcare";
+  }
+  if (i.includes("bank") || i.includes("financial") || i.includes("insurance")) {
+    return "Finance";
+  }
+  if (i.includes("energy") || i.includes("oil") || i.includes("gas")) {
+    return "Energy";
+  }
+  if (i.includes("retail") || i.includes("consumer") || i.includes("restaurant")) {
+    return "Consumer";
+  }
+  if (i.includes("industrial") || i.includes("machinery") || i.includes("aerospace")) {
+    return "Industrial";
+  }
+  return "Other";
+}
+
+type StockDef = { symbol: string; name: string; sector: Sector };
+
+function emptyStock(def: StockDef): Stock {
   return {
     symbol: def.symbol,
     name: def.name,
@@ -59,23 +104,16 @@ export function setCachedStocks(stocks: Stock[]) {
   cachedStocks = stocks;
 }
 
-function getFinnhubApiKey(): string | undefined {
-  return (
-    process.env.NEXT_PUBLIC_FINNHUB_API_KEY ||
-    process.env.FINNHUB_API_KEY ||
-    undefined
-  );
-}
-
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+export function isFinnhubConfigured(): boolean {
+  return Boolean(getFinnhubApiKey());
+}
+
 /** Fast path: live quote + price history only (2 network calls, 1 Finnhub). */
-async function fetchSymbolCore(
-  def: (typeof STOCK_UNIVERSE)[0],
-  apiKey: string
-): Promise<Stock | null> {
+async function fetchSymbolCore(def: StockDef, apiKey: string): Promise<Stock | null> {
   const [quote, chart] = await Promise.all([
     fetchFinnhubQuote(def.symbol, apiKey),
     fetchYahooChart(def.symbol),
@@ -113,6 +151,7 @@ async function enrichStock(stock: Stock, apiKey: string): Promise<Stock> {
   return {
     ...stock,
     name: extras.name ?? stock.name,
+    sector: stock.sector === "Other" ? inferSectorFromIndustry(extras.industry) : stock.sector,
     industry: extras.industry,
     website: extras.website,
     marketCap: extras.marketCap,
@@ -244,4 +283,32 @@ export async function fetchLiveStocks(
     errorCode:
       liveCount === 0 ? "fetch_failed" : failedSymbols.length > 0 ? "partial" : null,
   };
+}
+
+/** Load a single custom symbol (watchlist) with core data then background enrich. */
+export async function fetchCustomSymbol(
+  symbol: string,
+  name: string,
+  sector: Sector,
+  callbacks?: FetchLiveStocksCallbacks
+): Promise<Stock | null> {
+  const key = getFinnhubApiKey();
+  if (!key) return null;
+
+  const def: StockDef = { symbol, name, sector };
+  const core = await fetchSymbolCore(def, key);
+  if (!core) return null;
+
+  callbacks?.onProgress?.(core);
+
+  void (async () => {
+    try {
+      const enriched = await enrichStock(core, key);
+      callbacks?.onEnrich?.(enriched);
+    } catch {
+      callbacks?.onEnrich?.({ ...core, detailsLoaded: true });
+    }
+  })();
+
+  return core;
 }

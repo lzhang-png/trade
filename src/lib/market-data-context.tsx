@@ -9,9 +9,11 @@ import {
   useState,
 } from "react";
 import {
+  fetchCustomSymbol,
   fetchLiveStocks,
   getAllStocks,
   marketDataErrorMessage,
+  sectorFromSymbolType,
 } from "@/lib/market-data";
 import { loadStockCache, saveStockCache } from "@/lib/stock-cache";
 import type { Stock } from "@/lib/types";
@@ -24,6 +26,7 @@ interface MarketDataState {
   error: string | null;
   updatedAt: string | null;
   refresh: () => Promise<void>;
+  loadSymbol: (symbol: string, name: string, type: string) => Promise<void>;
 }
 
 const MarketDataContext = createContext<MarketDataState | null>(null);
@@ -55,6 +58,23 @@ export function MarketDataProvider({ children }: { children: React.ReactNode }) 
   );
   const hasLiveRef = useRef(Boolean(cached?.length));
 
+  const handleProgress = useCallback((stock: Stock) => {
+    hasLiveRef.current = true;
+    setStocks((prev) => mergeStocks(prev, [stock]));
+    setLive(true);
+    setUpdatedAt(new Date().toISOString());
+    setLoading(false);
+    setEnriching(true);
+  }, []);
+
+  const handleEnrich = useCallback((stock: Stock) => {
+    setStocks((prev) => {
+      const merged = mergeStocks(prev, [stock]);
+      saveStockCache(merged);
+      return merged;
+    });
+  }, []);
+
   const refresh = useCallback(async () => {
     if (!hasLiveRef.current) setLoading(true);
     setEnriching(true);
@@ -62,20 +82,8 @@ export function MarketDataProvider({ children }: { children: React.ReactNode }) 
 
     try {
       const result = await fetchLiveStocks(undefined, {
-        onProgress: (stock) => {
-          hasLiveRef.current = true;
-          setStocks((prev) => mergeStocks(prev, [stock]));
-          setLive(true);
-          setUpdatedAt(new Date().toISOString());
-          setLoading(false);
-        },
-        onEnrich: (stock) => {
-          setStocks((prev) => {
-            const merged = mergeStocks(prev, [stock]);
-            saveStockCache(merged);
-            return merged;
-          });
-        },
+        onProgress: handleProgress,
+        onEnrich: handleEnrich,
       });
 
       setLive(result.live);
@@ -96,7 +104,18 @@ export function MarketDataProvider({ children }: { children: React.ReactNode }) 
       setLoading(false);
       setEnriching(false);
     }
-  }, []);
+  }, [handleProgress, handleEnrich]);
+
+  const loadSymbol = useCallback(
+    async (symbol: string, name: string, type: string) => {
+      const sector = sectorFromSymbolType(type);
+      await fetchCustomSymbol(symbol, name, sector, {
+        onProgress: handleProgress,
+        onEnrich: handleEnrich,
+      });
+    },
+    [handleProgress, handleEnrich]
+  );
 
   useEffect(() => {
     const pending = stocks.filter((s) => s.price > 0 && !s.detailsLoaded);
@@ -113,7 +132,7 @@ export function MarketDataProvider({ children }: { children: React.ReactNode }) 
 
   return (
     <MarketDataContext.Provider
-      value={{ stocks, live, loading, enriching, error, updatedAt, refresh }}
+      value={{ stocks, live, loading, enriching, error, updatedAt, refresh, loadSymbol }}
     >
       {children}
     </MarketDataContext.Provider>

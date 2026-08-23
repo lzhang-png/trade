@@ -14,7 +14,11 @@ import {
   ExternalLinkIcon,
   ShieldIcon,
   TargetIcon,
+  StarIcon,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useWatchlist } from "@/lib/watchlist-context";
+import { toast } from "sonner";
 
 function MiniSparkline({ history }: { history: Stock["history"] }) {
   const points = history.slice(-30);
@@ -75,11 +79,25 @@ function analystLabel(trend: Stock["analystTrend"]): string | null {
 export function StockCard({
   stock,
   rec,
+  showWatchlistAction = true,
 }: {
   stock: Stock;
   rec: Recommendation;
+  showWatchlistAction?: boolean;
 }) {
   const analyst = analystLabel(stock.analystTrend);
+  const { add, remove, isWatching } = useWatchlist();
+  const watching = isWatching(stock.symbol);
+
+  function toggleWatchlist() {
+    if (watching) {
+      remove(stock.symbol);
+      toast.info(`Removed ${stock.symbol} from watchlist`);
+    } else {
+      add({ symbol: stock.symbol, name: stock.name, type: stock.sector === "ETF" ? "ETF" : "Common Stock" });
+      toast.success(`Added ${stock.symbol} to watchlist`);
+    }
+  }
 
   return (
     <Card className="flex h-full flex-col shadow-sm">
@@ -99,6 +117,18 @@ export function StockCard({
           </div>
           <SignalBadge signal={rec.signal} />
         </div>
+
+        {showWatchlistAction && (
+          <Button
+            variant={watching ? "secondary" : "outline"}
+            size="sm"
+            className="w-fit"
+            onClick={toggleWatchlist}
+          >
+            <StarIcon data-icon="inline-start" className={watching ? "fill-current" : undefined} />
+            {watching ? "On watchlist" : "Add to watchlist"}
+          </Button>
+        )}
 
         <div className="flex items-end justify-between gap-4">
           <div>

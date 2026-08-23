@@ -9,7 +9,8 @@ export type Sector =
   | "Energy"
   | "Consumer"
   | "Industrial"
-  | "ETF";
+  | "ETF"
+  | "Other";
 
 export interface PriceBar {
   date: string;
@@ -60,6 +61,20 @@ export interface Stock {
   analystTrend: AnalystTrend | null;
   /** False until fundamentals, news, and analyst data finish loading. */
   detailsLoaded: boolean;
+}
+
+export interface WatchlistItem {
+  symbol: string;
+  name: string;
+  type: string;
+  addedAt: string;
+}
+
+export interface SymbolSearchResult {
+  symbol: string;
+  displaySymbol: string;
+  description: string;
+  type: string;
 }
 
 export interface TechnicalIndicators {
